@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qualita · Plataforma de Autodiagnóstico</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --magenta:#B50CC5;--coral:#FE6F61;--navy:#252851;--dark:#111327;--sidebar:#191b32;
+    --bg:#f5f5fb;--card:#fff;--linea:#eaeaf2;--linea2:#f2f2f7;
+    --tinta:#6b6d86;--tinta2:#a0a2b6;--crema:#FFF4EC;
+    --grad:linear-gradient(100deg,var(--coral),var(--magenta));
+    --grad-mv:linear-gradient(125deg,var(--magenta),var(--navy));
+    --grad-soft:linear-gradient(120deg,#fff0f3,#f6eafd);
+    --ok:#1f9d63;--okbg:#e6f7ee;--warn:#e0492f;--warnbg:#fdeae6;--mid:#b57400;--midbg:#fdf4e3;--info:#4a54c4;--infobg:#eceeff;
+    --sh:0 1px 2px rgba(37,40,81,.04),0 6px 18px rgba(37,40,81,.05);
+    --sh-lg:0 12px 40px rgba(37,40,81,.12);
+    --r:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',system-ui,sans-serif;color:var(--navy);background:var(--bg);-webkit-font-smoothing:antialiased;font-size:14px}
+  h1,h2,h3,.disp{font-family:'Unbounded',sans-serif;letter-spacing:-.015em;line-height:1.1}
+  button{font-family:inherit;cursor:pointer}
+  ::selection{background:rgba(181,12,197,.15)}
+  .kicker{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--magenta);font-weight:700;display:inline-flex;align-items:center;gap:10px}
+  .kicker::before{content:"";width:20px;height:2px;background:var(--coral);border-radius:2px;flex:none}
+  @media(prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+  .gtext{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  .btn{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:.88rem;padding:11px 18px;border-radius:11px;border:none;color:#fff;background:var(--grad);transition:.16s ease}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(181,12,197,.28)}
+  .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--linea);box-shadow:var(--sh)}
+  .btn.ghost:hover{background:var(--bg);box-shadow:var(--sh)}
+  .btn.sm{padding:8px 14px;font-size:.82rem;border-radius:9px}
+  .btn.white{background:#fff;color:var(--magenta)}
+  .btn.white:hover{box-shadow:0 8px 22px rgba(0,0,0,.15)}
+
+  /* MODE SWITCH */
+  .modebar{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:120;display:flex;align-items:center;gap:6px;background:rgba(17,19,39,.94);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px;box-shadow:var(--sh-lg)}
+  .modebar .lab{font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.4);padding:0 8px 0 10px;font-weight:700}
+  .modebar button{font-size:.82rem;font-weight:600;color:rgba(255,255,255,.7);background:none;border:none;padding:9px 18px;border-radius:999px;transition:.16s;display:flex;align-items:center;gap:7px}
+  .modebar button:hover{color:#fff}
+  .modebar button.active{background:var(--grad);color:#fff;box-shadow:0 4px 14px rgba(181,12,197,.4)}
+  @media(max-width:560px){.modebar button{padding:9px 13px;font-size:.76rem}}
+
+  .mode{display:none}.mode.active{display:block}
+
+  /* ============ QUALITA CONSOLE ============ */
+  .app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+  .sidebar{background:var(--sidebar);color:#fff;display:flex;flex-direction:column;padding:20px 14px;position:sticky;top:0;height:100vh}
+  .sidebar .brand{display:flex;align-items:center;gap:11px;padding:6px 8px 20px}
+  .sidebar .brand .mark{width:32px;height:32px;flex:none}
+  .sidebar .brand .txt{font-family:'Unbounded';font-weight:700;font-size:1.02rem;line-height:.9}
+  .sidebar .brand .txt small{display:block;font-size:.44rem;letter-spacing:.36em;font-weight:500;margin-top:3px;opacity:.65}
+  .side-cta{margin:0 4px 10px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--grad);color:#fff;padding:12px;border-radius:11px;font-weight:600;font-size:.88rem;border:none;transition:.16s;box-shadow:0 6px 18px rgba(181,12,197,.3)}
+  .side-cta:hover{transform:translateY(-1px)}
+  .navlabel{font-size:.64rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.32);padding:16px 10px 8px;font-weight:700}
+  .navitem{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;color:rgba(255,255,255,.72);font-weight:500;font-size:.9rem;transition:.14s;border:none;background:none;width:100%;text-align:left;position:relative}
+  .navitem:hover{background:rgba(255,255,255,.06);color:#fff}
+  .navitem.active{background:rgba(255,255,255,.08);color:#fff}
+  .navitem.active::before{content:"";position:absolute;left:-14px;top:50%;transform:translateY(-50%);width:4px;height:20px;border-radius:0 4px 4px 0;background:var(--grad)}
+  .navitem svg{width:18px;height:18px;flex:none}
+  .navitem .badge{margin-left:auto;background:var(--coral);color:#fff;font-size:.66rem;font-weight:700;padding:2px 8px;border-radius:999px}
+  .side-foot{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,.1)}
+  .userchip{display:flex;align-items:center;gap:10px;padding:8px}
+  .avatar{width:36px;height:36px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;color:#fff;flex:none}
+  .userchip .nm{font-size:.85rem;font-weight:600}.userchip .rl{font-size:.72rem;color:rgba(255,255,255,.5)}
+
+  .main{display:flex;flex-direction:column;min-width:0}
+  .topbar{height:66px;background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--linea);display:flex;align-items:center;justify-content:space-between;padding:0 30px;position:sticky;top:0;z-index:20}
+  .topbar h2{font-size:1.12rem;font-weight:600}
+  .topbar .r{display:flex;align-items:center;gap:14px}
+  .search{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--linea);border-radius:11px;padding:9px 13px;width:280px;color:var(--tinta2)}
+  .search input{border:none;background:none;outline:none;font-family:inherit;font-size:.88rem;width:100%;color:var(--navy)}
+  @media(max-width:760px){.search{display:none}}
+  .content{padding:30px;max-width:1240px;width:100%}
+  .page{display:none}.page.active{display:block;animation:fade .32s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .pagehead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+  .pagehead h1{font-size:1.5rem;font-weight:700}
+  .pagehead .d{color:var(--tinta);margin-top:6px;font-size:.92rem}
+
+  /* stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+  @media(max-width:920px){.stats{grid-template-columns:1fr 1fr}}
+  .tile{background:var(--card);border:1px solid var(--linea);border-radius:var(--r);padding:20px;box-shadow:var(--sh);transition:.16s}
+  .tile:hover{transform:translateY(-2px);box-shadow:var(--sh-lg)}
+  .tile .lbl{font-size:.8rem;color:var(--tinta);display:flex;align-items:center;gap:8px;font-weight:500}
+  .tile .val{font-family:'Unbounded';font-weight:700;font-size:1.9rem;margin-top:12px;line-height:1}
+  .tile .delta{font-size:.76rem;margin-top:9px;color:var(--ok);font-weight:600}
+  .tile .delta.n{color:var(--tinta)}
+  .dotico{width:9px;height:9px;border-radius:50%}
+
+  .grid2{display:grid;grid-template-columns:1.5fr 1fr;gap:18px}
+  @media(max-width:1000px){.grid2{grid-template-columns:1fr}}
+  .panel{background:var(--card);border:1px solid var(--linea);border-radius:var(--r);padding:22px;box-shadow:var(--sh)}
+  .panel h3{font-size:1rem;font-weight:700;font-family:'DM Sans'}
+  .panel .desc{font-size:.82rem;color:var(--tinta);margin-top:2px}
+  .phead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+
+  .barline{display:flex;align-items:center;gap:14px;margin-bottom:15px}
+  .barline .cn{width:112px;font-size:.85rem;font-weight:500;flex:none}
+  .barline .track{flex:1;height:10px;background:var(--linea2);border-radius:6px;overflow:hidden}
+  .barline .track i{display:block;height:100%;border-radius:6px;background:var(--grad);transition:width 1s ease}
+  .barline .pc{width:42px;text-align:right;font-size:.82rem;font-weight:700;color:var(--tinta)}
+
+  /* leads table */
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+  .filters{display:flex;gap:8px;flex-wrap:wrap}
+  .fpill{font-size:.82rem;padding:8px 15px;border-radius:999px;border:1px solid var(--linea);background:#fff;color:var(--tinta);font-weight:600;transition:.14s;display:flex;align-items:center;gap:7px}
+  .fpill:hover{border-color:var(--tinta2)}
+  .fpill.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .fpill .c{background:rgba(0,0,0,.08);border-radius:999px;padding:0 7px;font-size:.72rem}
+  .fpill.on .c{background:rgba(255,255,255,.2)}
+
+  .tablecard{background:#fff;border:1px solid var(--linea);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh)}
+  table{width:100%;border-collapse:collapse}
+  thead th{text-align:left;font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;color:var(--tinta2);font-weight:700;padding:14px 18px;background:var(--bg);border-bottom:1px solid var(--linea)}
+  tbody td{padding:15px 18px;border-bottom:1px solid var(--linea2);font-size:.9rem;vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr{cursor:pointer;transition:.12s}
+  tbody tr:hover{background:#faf9fe}
+  .co{display:flex;align-items:center;gap:12px}
+  .colgo{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;color:#fff;flex:none}
+  .co .sub{font-size:.76rem;color:var(--tinta2);margin-top:1px}
+  .contact .nm{font-weight:600}.contact .em{font-size:.78rem;color:var(--tinta2)}
+  .pill{display:inline-flex;align-items:center;gap:7px;font-size:.74rem;font-weight:700;padding:5px 11px;border-radius:999px;white-space:nowrap}
+  .pill .pd{width:7px;height:7px;border-radius:50%}
+  .p-nuevo{background:var(--infobg);color:var(--info)} .p-nuevo .pd{background:var(--info)}
+  .p-contactado{background:var(--midbg);color:var(--mid)} .p-contactado .pd{background:var(--mid)}
+  .p-conversacion{background:#f3e9fb;color:var(--magenta)} .p-conversacion .pd{background:var(--magenta)}
+  .p-cliente{background:var(--okbg);color:var(--ok)} .p-cliente .pd{background:var(--ok)}
+  .p-descartado{background:var(--bg);color:var(--tinta2)} .p-descartado .pd{background:var(--tinta2)}
+  .scoreb{display:flex;align-items:center;gap:10px}
+  .scoreb b{font-family:'Unbounded';font-weight:700;font-size:.95rem;width:26px}
+  .miniprog{width:56px;height:6px;background:var(--linea2);border-radius:4px;overflow:hidden}
+  .miniprog i{display:block;height:100%;background:var(--grad)}
+  .fuga{font-weight:700;color:var(--warn)}
+
+  /* DRAWER */
+  .scrim{position:fixed;inset:0;background:rgba(17,19,39,.4);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:.25s;z-index:90}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;right:0;height:100vh;width:min(440px,94vw);background:#fff;box-shadow:var(--sh-lg);transform:translateX(100%);transition:.3s cubic-bezier(.4,0,.2,1);z-index:100;display:flex;flex-direction:column}
+  .drawer.open{transform:none}
+  .drawer .dh{padding:22px 24px;border-bottom:1px solid var(--linea);display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .drawer .dh .x{background:var(--bg);border:1px solid var(--linea);width:32px;height:32px;border-radius:9px;color:var(--tinta);font-size:1rem;flex:none}
+  .drawer .db{padding:22px 24px;overflow-y:auto;flex:1}
+  .drawer .df{padding:16px 24px;border-top:1px solid var(--linea);display:flex;gap:10px}
+  .co-lg{display:flex;align-items:center;gap:14px}
+  .co-lg .colgo{width:52px;height:52px;border-radius:13px;font-size:1.15rem}
+  .co-lg h2{font-size:1.2rem;font-weight:700}
+  .co-lg .sub{color:var(--tinta);font-size:.85rem;margin-top:2px}
+  .kv{display:grid;grid-template-columns:100px 1fr;gap:6px 12px;margin:6px 0}
+  .kv .k{color:var(--tinta2);font-size:.82rem}
+  .kv .v{font-size:.9rem;font-weight:500}
+  .kv .v a{color:var(--magenta);text-decoration:none}
+  .sectt{font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--magenta);font-weight:700;margin:24px 0 12px;display:flex;align-items:center;gap:8px}
+  .chanmini{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--linea2);font-size:.86rem}
+  .chanmini:last-child{border:none}
+  .chanmini .dd{display:flex;gap:4px}
+  .chanmini .dd i{width:16px;height:6px;border-radius:3px;background:var(--linea)}
+  .chanmini .dd i.f{background:var(--grad)}
+  .statusrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .statusrow .sopt{font-size:.76rem;padding:6px 11px;border-radius:999px;border:1px solid var(--linea);color:var(--tinta);font-weight:600}
+  .statusrow .sopt.cur{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+  /* DETAIL page (full report w tabs) */
+  .detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+  .detail-head h1{font-size:1.5rem;font-weight:700}
+  .detail-head .meta{font-size:.84rem;color:var(--tinta);margin-top:4px}
+  .dactions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .tabs{display:flex;gap:2px;border-bottom:1px solid var(--linea);margin-bottom:22px;overflow-x:auto}
+  .tab{padding:11px 15px;font-size:.85rem;font-weight:600;color:var(--tinta);border:none;background:none;border-bottom:2px solid transparent;white-space:nowrap}
+  .tab:hover{color:var(--navy)}.tab.active{color:var(--magenta);border-bottom-color:var(--magenta)}
+  .tabpane{display:none}.tabpane.active{display:block;animation:fade .25s ease}
+  .scoregrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:900px){.scoregrid{grid-template-columns:1fr 1fr}}
+  @media(max-width:560px){.scoregrid{grid-template-columns:1fr}}
+  .sc{background:#fff;border:1px solid var(--linea);border-radius:14px;padding:18px;box-shadow:var(--sh)}
+  .sc .t{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .sc h4{font-size:.92rem;font-weight:700}
+  .dots{display:flex;gap:5px;margin-bottom:10px}
+  .dots i{width:20px;height:7px;border-radius:4px;background:var(--linea)}.dots i.f{background:var(--grad)}
+  .sc p{font-size:.84rem;color:var(--tinta)}
+  .summaryban{background:var(--grad-soft);border:1px solid var(--linea);border-radius:14px;padding:18px 20px;margin-bottom:22px;font-size:.95rem}
+  .checkrow{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--linea2)}
+  .checkrow:last-child{border:none}
+  .ci{width:24px;height:24px;border-radius:7px;flex:none;display:flex;align-items:center;justify-content:center;font-size:.74rem;font-weight:700}
+  .ci.bad{background:var(--warnbg);color:var(--warn)}.ci.mid{background:var(--midbg);color:var(--mid)}.ci.good{background:var(--okbg);color:var(--ok)}
+  .checkrow .t{font-weight:600;font-size:.9rem}.checkrow .d{font-size:.83rem;color:var(--tinta);margin-top:2px}
+  .comptable td.you{font-weight:700}.tick{color:var(--ok);font-weight:700}.cross{color:var(--warn);font-weight:700}
+  .comptable th,.comptable td{padding:13px 16px;border-bottom:1px solid var(--linea2);font-size:.9rem;text-align:left}
+  .comptable thead th{background:var(--bg);color:var(--magenta);font-size:.7rem;letter-spacing:.04em;text-transform:uppercase}
+
+  .emptyq{text-align:center;padding:56px 20px;color:var(--tinta)}
+  .emptyq .big{font-size:2rem}
+
+  /* panel extras */
+  .attn{display:flex;align-items:center;gap:16px;background:var(--grad-soft);border:1px solid var(--linea);border-radius:var(--r);padding:16px 20px;margin-bottom:22px}
+  .attn .ai{width:44px;height:44px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:1.25rem;box-shadow:var(--sh);flex:none}
+  .attn .tx{flex:1}.attn .tx b{font-weight:700}.attn .tx p{font-size:.85rem;color:var(--tinta);margin-top:2px}
+  .funnel{display:flex;height:18px;border-radius:9px;overflow:hidden;margin:6px 0 18px;gap:2px}
+  .funnel span{height:100%;transition:.4s}
+  .legend{display:flex;flex-wrap:wrap;gap:16px}
+  .legend .li{display:flex;align-items:center;gap:7px;font-size:.82rem;color:var(--tinta)}
+  .legend .li .d{width:10px;height:10px;border-radius:3px}.legend .li b{color:var(--navy)}
+  .rubro{display:flex;align-items:center;gap:12px;margin-bottom:13px}
+  .rubro .rn{width:160px;font-size:.85rem;flex:none}
+  .rubro .rt{flex:1;height:8px;background:var(--linea2);border-radius:5px;overflow:hidden}
+  .rubro .rt i{display:block;height:100%;background:var(--grad);border-radius:5px}
+  .rubro .rc{width:24px;text-align:right;font-weight:700;font-size:.82rem;color:var(--tinta)}
+
+  /* competencia */
+  .adcell{display:flex;align-items:center;gap:9px}
+  .adcell b{width:14px;font-weight:700}.adcell.zero{color:var(--tinta2)}
+  .adbar{width:50px;height:6px;background:var(--linea2);border-radius:4px;overflow:hidden}
+  .adbar i{display:block;height:100%;background:var(--grad)}
+  .rowyou{background:#faf5fe}
+  .seo-f{font-weight:700;color:var(--ok)}.seo-m{font-weight:700;color:var(--mid)}.seo-b{font-weight:700;color:var(--tinta2)}
+  .readings{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}
+  @media(max-width:760px){.readings{grid-template-columns:1fr}}
+  .reading{border-radius:var(--r);padding:26px;color:#fff;position:relative;overflow:hidden;box-shadow:var(--sh)}
+  .reading.u{background:var(--grad)}.reading.o{background:var(--grad-mv)}
+  .reading .k{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;opacity:.85}
+  .reading h4{font-size:1.1rem;color:#fff;margin:8px 0}
+  .reading p{font-size:.9rem;color:rgba(255,255,255,.85)}
+  .notecard{background:var(--card);border:1px solid var(--linea);border-radius:12px;padding:14px 18px;font-size:.83rem;color:var(--tinta);margin-top:20px}
+
+  /* ============ EMPRESA CLIENT ============ */
+  .cbar{background:#fff;border-bottom:1px solid var(--linea);position:sticky;top:0;z-index:30}
+  .cbar .in{max-width:940px;margin:0 auto;padding:15px clamp(18px,5vw,32px);display:flex;align-items:center;justify-content:space-between}
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo .mark{width:30px;height:30px}
+  .logo .txt{font-family:'Unbounded';font-weight:700;font-size:1rem;line-height:.9}
+  .logo .txt small{display:block;font-size:.44rem;letter-spacing:.34em;font-weight:500;margin-top:3px;color:var(--tinta)}
+  .cbar .tag{font-size:.8rem;color:var(--tinta);font-weight:500}
+  .cwrap{max-width:940px;margin:0 auto;padding:0 clamp(18px,5vw,32px)}
+  .cview{display:none}.cview.active{display:block;animation:fade .34s ease}
+
+  .formwrap{padding:46px 0 120px;max-width:600px;margin:0 auto}
+  .progress{display:flex;gap:8px;margin:16px 0 34px}
+  .progress .seg{flex:1;height:6px;border-radius:6px;background:var(--linea)}.progress .seg.on{background:var(--grad)}
+  .fstep{display:none}.fstep.active{display:block;animation:fade .3s ease}
+  .steptitle{font-family:'Unbounded';font-weight:600;font-size:1.55rem;margin-bottom:8px}
+  .stepsub{color:var(--tinta);margin-bottom:30px}
+  .field{margin-bottom:20px}
+  .field label{display:block;font-weight:600;font-size:.9rem;margin-bottom:8px}
+  .field .hint{font-weight:400;color:var(--tinta2);font-size:.8rem}
+  .field input,.field select,.field textarea{width:100%;font-family:inherit;font-size:1rem;padding:14px 16px;border:1.5px solid var(--linea);border-radius:12px;background:#fff;color:var(--navy);transition:.15s}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--magenta);box-shadow:0 0 0 4px rgba(181,12,197,.1)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:520px){.row2{grid-template-columns:1fr}}
+  .pillopts{display:flex;flex-wrap:wrap;gap:10px}
+  .pillopts label{border:1.5px solid var(--linea);border-radius:999px;padding:10px 18px;font-size:.9rem;cursor:pointer;transition:.15s}
+  .pillopts input{display:none}.pillopts label:has(input:checked){background:var(--grad);border-color:transparent;color:#fff}
+  .formnav{display:flex;justify-content:space-between;margin-top:34px;gap:12px}
+  .reassure{margin-top:22px;font-size:.82rem;color:var(--tinta2);display:flex;align-items:center;gap:8px}
+
+  .loading{min-height:78vh;display:flex;align-items:center;background:var(--dark);color:#fff;position:relative;overflow:hidden}
+  .aura{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;pointer-events:none}
+  .a-mag{background:radial-gradient(circle,var(--magenta),transparent 70%)}.a-cor{background:radial-gradient(circle,var(--coral),transparent 70%)}
+  .loading .cwrap{position:relative;z-index:2}
+  .loading h1{font-size:clamp(1.8rem,4.5vw,2.7rem);font-weight:700;margin:14px 0 10px;max-width:16ch}
+  .loading p{color:rgba(255,255,255,.65);max-width:48ch}
+  .ast{font-family:'Unbounded';font-weight:700;line-height:.7}
+  .checklist{margin-top:36px;max-width:440px}
+  .ck{display:flex;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.12);opacity:.4;transition:.4s}
+  .ck.active{opacity:1}.ck.done{opacity:.85}
+  .ck .ic{width:26px;height:26px;flex:none;border-radius:50%;border:2px solid rgba(255,255,255,.3);position:relative}
+  .ck.active .ic{border-color:var(--coral);border-top-color:transparent;animation:spin .8s linear infinite}
+  .ck.done .ic{border-color:transparent;background:var(--grad)}
+  .ck.done .ic::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;font-weight:700}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .ck span{font-weight:500}
+  #cta2{margin-top:38px;opacity:0;transform:translateY(10px);transition:.5s;pointer-events:none}#cta2.show{opacity:1;transform:none;pointer-events:auto}
+
+  .rhead{background:var(--dark);color:#fff;position:relative;overflow:hidden;padding:72px 0 66px}
+  .rhead .cwrap{position:relative;z-index:2}
+  .rhead .kicker{color:var(--coral)}
+  .rhead-grid{display:grid;grid-template-columns:1.25fr .95fr;gap:44px;align-items:center}
+  @media(max-width:860px){.rhead-grid{grid-template-columns:1fr;gap:30px}}
+  .rhead h1{font-size:clamp(2rem,4.4vw,3.2rem);font-weight:700;color:#fff;margin:16px 0 14px;line-height:1.02}
+  .rhead .lede{color:rgba(255,255,255,.76);font-size:1.05rem;max-width:42ch}
+  .rmeta{color:rgba(255,255,255,.45);font-size:.85rem;margin-top:14px}
+  .rhead .actions{display:flex;gap:10px;margin-top:26px}
+  .rhead .actions .btn.ghost{background:rgba(255,255,255,.06);color:#fff;border-color:rgba(255,255,255,.22)}
+  .rhead .actions .btn.ghost:hover{background:rgba(255,255,255,.12)}
+  .scorepanel{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:26px 26px 24px;backdrop-filter:blur(10px)}
+  .sp-top{display:flex;align-items:center;gap:18px;margin-bottom:24px}
+  .sp-num{display:flex;align-items:baseline;gap:2px}
+  .sp-num b{font-family:'Unbounded';font-weight:700;font-size:3.6rem;line-height:.85;color:#fff}
+  .sp-num span{font-size:1rem;color:rgba(255,255,255,.5);font-weight:600}
+  .sp-lab{font-size:.85rem;color:rgba(255,255,255,.62)}
+  .lvl{display:inline-block;margin-top:7px;font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:4px 11px;border-radius:999px;background:rgba(254,111,97,.2);color:#ff9d92}
+  .sp-scale{margin-bottom:22px}
+  .sp-track{position:relative;height:8px;border-radius:5px;background:linear-gradient(90deg,rgba(224,73,47,.7),rgba(181,116,0,.7) 55%,rgba(31,157,99,.7))}
+  .sp-marker{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid var(--coral);transform:translate(-50%,-50%);box-shadow:0 2px 10px rgba(0,0,0,.4);transition:left 1s cubic-bezier(.4,0,.2,1)}
+  .sp-bands{display:flex;justify-content:space-between;margin-top:10px;font-size:.64rem;color:rgba(255,255,255,.42);letter-spacing:.02em}
+  .sp-pillars{display:flex;flex-direction:column;gap:15px;border-top:1px solid rgba(255,255,255,.1);padding-top:20px}
+  .sp-p-row{display:flex;align-items:center;gap:10px;font-size:.86rem;color:rgba(255,255,255,.85);margin-bottom:7px}
+  .sp-p-row .sp-dot{width:10px;height:10px;border-radius:3px;flex:none}
+  .sp-p-row .sp-dot.brand{background:var(--magenta)}.sp-p-row .sp-dot.infra{background:var(--coral)}
+  .sp-p-row b{margin-left:auto;font-family:'Unbounded';font-weight:700;color:#fff;font-size:.98rem}
+  .sp-mini{display:block;height:8px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden}
+  .sp-mini i{display:block;height:100%;min-width:10px;border-radius:6px;transition:width .9s cubic-bezier(.4,0,.2,1)}
+  .sp-mini.brand i{background:linear-gradient(90deg,#d95cf5,#a915c4)}
+  .sp-mini.infra i{background:linear-gradient(90deg,#ff9084,#FE6F61)}
+  .st{font-size:.72rem;font-weight:700;padding:5px 11px;border-radius:999px;white-space:nowrap}
+  .st-crit{background:var(--warnbg);color:var(--warn)}
+  .st-par{background:var(--midbg);color:var(--mid)}
+  .st-aus{background:var(--bg);color:var(--tinta)}
+  .st-act{background:var(--okbg);color:var(--ok)}
+  .find{transition:.16s ease}
+  .find:hover{transform:translateY(-3px);box-shadow:var(--sh-lg)}
+  section.blk{padding:46px 0;border-bottom:1px solid var(--linea)}
+  .blk h2{font-size:1.35rem;font-weight:600;margin-bottom:6px}
+  .blk .sub{color:var(--tinta);margin-bottom:26px;max-width:52ch}
+  .scoregrid2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}@media(max-width:640px){.scoregrid2{grid-template-columns:1fr}}
+  .findgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}@media(max-width:760px){.findgrid{grid-template-columns:1fr}}
+  .find{border:1px solid var(--linea);border-radius:14px;overflow:hidden;background:#fff;box-shadow:var(--sh)}
+  .find .body{padding:20px}.find h3{font-size:1rem;margin-bottom:8px}.find .body p{font-size:.9rem;color:var(--tinta)}
+  .find .lose{background:var(--navy);color:#fff;padding:14px 20px;font-size:.84rem}
+  .find .lose b{color:var(--coral);display:block;font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
+  .good-sec{background:var(--crema)}
+  .goodrow{display:flex;gap:14px;align-items:flex-start;margin-bottom:16px}
+  .goodrow .ic{width:26px;height:26px;border-radius:8px;background:var(--okbg);color:var(--ok);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+  .cta-band{border-radius:22px;padding:46px;color:#fff;position:relative;overflow:hidden;background:var(--grad-mv)}
+  .cta-band h2{font-size:clamp(1.4rem,3.2vw,2.1rem);font-weight:700;max-width:22ch;margin-bottom:12px;color:#fff}
+  .cta-band p{color:rgba(255,255,255,.82);max-width:50ch;margin-bottom:24px}
+  .gated{margin-top:18px;font-size:.85rem;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:8px}
+  .cfooter{background:var(--dark);color:#fff;padding:40px 0}
+  .cfooter .in{max-width:940px;margin:0 auto;padding:0 clamp(18px,5vw,32px);display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px}
+  .cfooter .links{display:flex;gap:22px;color:rgba(255,255,255,.6);font-size:.88rem}
+  .method{color:var(--tinta);font-size:.83rem;text-align:center;padding:26px 0}
+  .cprotonav{display:flex;justify-content:center;gap:8px;padding:16px 0 30px}
+  .cprotonav button{font-size:.82rem;font-weight:600;color:var(--tinta);background:#fff;border:1px solid var(--linea);padding:9px 16px;border-radius:999px;box-shadow:var(--sh)}
+  .cprotonav button.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+  /* client landing */
+  .lhero{background:var(--dark);color:#fff;position:relative;overflow:hidden;padding:78px 0 88px}
+  .lhero .cwrap{position:relative;z-index:2}
+  .lhero h1{font-size:clamp(2.1rem,5.4vw,3.9rem);font-weight:700;max-width:15ch;line-height:1.03;color:#fff}
+  .lhero h1 .g{color:#fff;background:linear-gradient(transparent 58%, rgba(254,111,97,.4) 58%);padding:0 .04em}
+  .lhero .sub{margin-top:24px;font-size:clamp(1rem,1.7vw,1.2rem);color:rgba(255,255,255,.72);max-width:52ch}
+  .lhero .ctarow{margin-top:34px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .lhero .mini{margin-top:20px;font-size:.85rem;color:rgba(255,255,255,.5)}
+  .stepc{background:#fff;border:1px solid var(--linea);border-radius:14px;padding:24px;box-shadow:var(--sh)}
+  .stepc .b{width:44px;height:44px;border-radius:12px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-family:'Unbounded';font-weight:700;color:#fff;margin-bottom:16px}
+  .stepc h3{font-size:1.05rem;margin-bottom:6px}.stepc p{font-size:.92rem;color:var(--tinta)}
+  .steprow,.chgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:6px}
+  @media(max-width:820px){.steprow,.chgrid{grid-template-columns:1fr}}
+  .chcard{border:1px solid var(--linea);border-radius:14px;padding:22px;background:#fff;box-shadow:var(--sh);transition:.16s}
+  .chcard:hover{transform:translateY(-2px);box-shadow:var(--sh-lg)}
+  .chcard .n{font-family:'Unbounded';font-weight:700;color:var(--magenta);font-size:.95rem}
+  .chcard h3{font-size:1rem;margin:12px 0 6px}.chcard p{font-size:.9rem;color:var(--tinta)}
+  .giveaway{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+  @media(max-width:760px){.giveaway{grid-template-columns:1fr}}
+  .previewcard{background:#fff;border:1px solid var(--linea);border-radius:16px;padding:22px;box-shadow:var(--sh)}
+  .pvrow{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--linea2);font-size:.9rem}
+  .pvrow:last-child{border:none}
+
+  /* zona combobox */
+  .combo{position:relative}
+  .combo .caret{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:var(--tinta2);pointer-events:none;font-size:.7rem}
+  .combo-list{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border:1px solid var(--linea);border-radius:12px;box-shadow:var(--sh-lg);max-height:240px;overflow-y:auto;z-index:50;display:none}
+  .combo-list.open{display:block}
+  .combo-opt{padding:11px 16px;font-size:.95rem;cursor:pointer}
+  .combo-opt:hover{background:var(--bg)}
+  .combo-opt.empty{color:var(--tinta2);cursor:default}.combo-opt.empty:hover{background:none}
+
+  /* pilares (resultado cliente) */
+  .pillovw{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:700px){.pillovw{grid-template-columns:1fr}}
+  .povw{border-radius:16px;padding:24px;border:1px solid var(--linea);background:#fff;box-shadow:var(--sh);transition:.16s}
+  .povw:hover{transform:translateY(-2px);box-shadow:var(--sh-lg)}
+  .povw.brand{border-top:4px solid var(--magenta)}
+  .povw.infra{border-top:4px solid var(--coral)}
+  .povw-h{display:flex;align-items:center;gap:10px}
+  .povw-h h3{font-size:1.15rem}
+  .ptag{font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--tinta2)}
+  .povw-score{display:flex;align-items:baseline;gap:3px;margin:10px 0}
+  .povw-score b{font-family:'Unbounded';font-weight:700;font-size:2.4rem;line-height:1}
+  .povw.brand .povw-score b{color:var(--magenta)}.povw.infra .povw-score b{color:var(--coral)}
+  .povw-score small{color:var(--tinta2);font-weight:600}
+  .povw p{font-size:.92rem;color:var(--tinta);margin-bottom:14px}
+  .povw-link{font-size:.85rem;font-weight:700;color:var(--navy);cursor:pointer}
+  .povw-link:hover{color:var(--magenta)}
+  .pillhead{display:flex;align-items:center;gap:16px;margin-bottom:8px}
+  .pnum{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-family:'Unbounded';font-weight:700;color:#fff;flex:none;font-size:1.15rem}
+  .pnum.brand{background:linear-gradient(135deg,var(--magenta),#7a2bd0)}
+  .pnum.infra{background:var(--grad)}
+  .bigtabs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:24px 0 26px}
+  @media(max-width:640px){.bigtabs{grid-template-columns:1fr}}
+  .bigtab{display:flex;align-items:center;gap:14px;text-align:left;padding:18px 20px;border-radius:16px;border:1.5px solid var(--linea);background:#fff;box-shadow:var(--sh);transition:.16s;cursor:pointer}
+  .bigtab:hover{border-color:var(--tinta2)}
+  .bigtab .bt-num{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-family:'Unbounded';font-weight:700;font-size:1rem;background:var(--bg);color:var(--tinta);flex:none;transition:.16s}
+  .bigtab .bt-txt b{display:block;font-family:'Unbounded';font-weight:600;font-size:1.05rem}
+  .bigtab .bt-txt small{display:block;font-size:.8rem;color:var(--tinta);margin-top:3px}
+  .bigtab.active{border-color:transparent;color:#fff;background:var(--navy)}
+  .bigtab.active .bt-txt small{color:rgba(255,255,255,.72)}
+  .bigtab.active .bt-num{background:var(--grad);color:#fff}
+  .ptpane{display:none}.ptpane.active{display:block;animation:fade .28s ease}
+  .bt-txt{flex:1;min-width:0}
+  .bt-score{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:54px;height:54px;border-radius:14px;flex:none;line-height:1}
+  .bt-score b{font-family:'Unbounded';font-weight:700;font-size:1.18rem}
+  .bt-score i{font-style:normal;font-size:.58rem;opacity:.7;margin-top:2px}
+  .bt-score.brand{background:rgba(181,12,197,.1);color:var(--magenta)}
+  .bt-score.infra{background:rgba(254,111,97,.12);color:var(--coral)}
+  .bigtab.active .bt-score{background:rgba(255,255,255,.16)}
+  .pillhero{display:flex;align-items:center;gap:24px;padding:22px 24px;border-radius:16px;margin-bottom:24px;border:1px solid var(--linea);background:#fff;box-shadow:var(--sh)}
+  .pillhero.brand{border-left:4px solid var(--magenta)}
+  .pillhero.infra{border-left:4px solid var(--coral)}
+  .ph-ring{position:relative;width:96px;height:96px;flex:none}
+  .ph-ring .ph-prog{transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1)}
+  .ph-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+  .ph-num b{font-family:'Unbounded';font-weight:700;font-size:1.6rem}
+  .ph-num small{font-size:.6rem;color:var(--tinta2);margin-top:2px}
+  .ph-tx h3{font-size:1.22rem;margin:8px 0 6px}
+  .ph-tx p{font-size:.92rem;color:var(--tinta);max-width:54ch}
+  .ph-status{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 11px;border-radius:999px;display:inline-block}
+  .ph-status.mid{background:var(--midbg);color:var(--mid)}
+  .ph-status.warn{background:var(--warnbg);color:var(--warn)}
+  .ph-status.ok{background:var(--okbg);color:var(--ok)}
+  @media(max-width:600px){.pillhero{flex-direction:column;text-align:center}.ph-tx p{max-width:none}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+  <linearGradient id="qg" x1="6" y1="6" x2="42" y2="42" gradientUnits="userSpaceOnUse"><stop stop-color="#FE6F61"/><stop offset="1" stop-color="#B50CC5"/></linearGradient>
+</defs></svg>
+
+<!-- ============================ MODE: QUALITA ============================ -->
+<div class="mode active" id="mode-qualita">
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <svg class="mark" viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg>
+        <div class="txt">qualita<small>DIAGNÓSTICO</small></div>
+      </div>
+      <button class="side-cta" onclick="qnav('new')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Nuevo diagnóstico</button>
+      <div class="navlabel">Trabajo</div>
+      <button class="navitem active" data-q="panel" onclick="qnav('panel')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Panel</button>
+      <button class="navitem" data-q="leads" onclick="qnav('leads')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Autodiagnósticos<span class="badge">3</span></button>
+      <button class="navitem" data-q="all" onclick="qnav('all')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Todos los diagnósticos</button>
+      <button class="navitem" data-q="competencia" onclick="qnav('competencia')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Competencia</button>
+      <div class="navlabel">Cuenta</div>
+      <button class="navitem" data-q="config" onclick="qnav('config')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-2.9 1.1V21a2 2 0 01-4 0v-.09A1.65 1.65 0 007.4 19a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 005 9.4a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9"/></svg>Configuración</button>
+      <div class="side-foot"><div class="userchip"><div class="avatar">QS</div><div><div class="nm">Equipo Qualita</div><div class="rl">Bahía Blanca</div></div></div></div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <h2 id="qTitle">Panel</h2>
+        <div class="r">
+          <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Buscar empresa, contacto…"></div>
+          <button class="btn sm" onclick="qnav('new')">+ Nuevo</button>
+        </div>
+      </header>
+
+      <div class="content">
+        <!-- PANEL -->
+        <section class="page active" id="q-panel">
+          <div class="pagehead"><div><h1>Así viene la semana</h1><div class="d">Resumen del workspace y lo que entró por autodiagnóstico.</div></div><button class="btn sm" onclick="qnav('leads')">Ver autodiagnósticos</button></div>
+
+          <div class="attn">
+            <div class="ai"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B50CC5" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8" stroke-linecap="round"/></svg></div>
+            <div class="tx"><b>Tenés 3 autodiagnósticos sin contactar.</b><p>El más reciente entró hoy. Los primeros minutos son los que mejor convierten.</p></div>
+            <button class="btn sm" onclick="qnav('leads')">Revisar ahora →</button>
+          </div>
+
+          <div class="stats">
+            <div class="tile"><div class="lbl"><span class="dotico" style="background:var(--magenta)"></span>Autodiagnósticos</div><div class="val">31</div><div class="delta">+6 esta semana</div></div>
+            <div class="tile"><div class="lbl"><span class="dotico" style="background:var(--info)"></span>Sin contactar</div><div class="val">3</div><div class="delta n">requieren seguimiento</div></div>
+            <div class="tile"><div class="lbl"><span class="dotico" style="background:var(--coral)"></span>Madurez promedio</div><div class="val">41<span style="font-size:1rem;color:var(--tinta)">/100</span></div><div class="delta n">del mercado local</div></div>
+            <div class="tile"><div class="lbl"><span class="dotico" style="background:var(--ok)"></span>Convertidos</div><div class="val">7</div><div class="delta">+2 este mes · 23%</div></div>
+          </div>
+
+          <div class="grid2">
+            <div class="panel">
+              <div class="phead"><div><h3>Entró recién</h3><div class="desc">Autodiagnósticos sin contactar</div></div><span class="pill p-nuevo"><span class="pd"></span>3 nuevos</span></div>
+              <div id="panelRecent"></div>
+              <button class="btn ghost sm" style="width:100%;margin-top:14px;justify-content:center" onclick="qnav('leads')">Ver todos los autodiagnósticos</button>
+            </div>
+            <div class="panel">
+              <div class="phead"><div><h3>Rubros más diagnosticados</h3><div class="desc">Dónde hay más demanda buscando</div></div></div>
+              <div class="rubro"><span class="rn">Desarrollo y construcción</span><span class="rt"><i style="width:100%"></i></span><span class="rc">11</span></div>
+              <div class="rubro"><span class="rn">Industria</span><span class="rt"><i style="width:55%"></i></span><span class="rc">6</span></div>
+              <div class="rubro"><span class="rn">Indumentaria / textil</span><span class="rt"><i style="width:45%"></i></span><span class="rc">5</span></div>
+              <div class="rubro"><span class="rn">Servicios</span><span class="rt"><i style="width:45%"></i></span><span class="rc">5</span></div>
+              <div class="rubro"><span class="rn">Agroindustria</span><span class="rt"><i style="width:36%"></i></span><span class="rc">4</span></div>
+            </div>
+          </div>
+
+          <div class="grid2" style="margin-top:18px">
+            <div class="panel">
+              <div class="phead"><div><h3>Madurez promedio por canal</h3><div class="desc">Sobre los 31 diagnósticos</div></div></div>
+              <div class="barline"><span class="cn">Redes sociales</span><span class="track"><i style="width:74%"></i></span><span class="pc">74%</span></div>
+              <div class="barline"><span class="cn">Sitio web</span><span class="track"><i style="width:44%"></i></span><span class="pc">44%</span></div>
+              <div class="barline"><span class="cn">SEO / Google</span><span class="track"><i style="width:37%"></i></span><span class="pc">37%</span></div>
+              <div class="barline"><span class="cn">Meta Ads</span><span class="track"><i style="width:26%"></i></span><span class="pc">26%</span></div>
+              <div class="barline"><span class="cn">Google Ads</span><span class="track"><i style="width:19%"></i></span><span class="pc">19%</span></div>
+              <div class="barline"><span class="cn">Medición</span><span class="track"><i style="width:16%"></i></span><span class="pc">16%</span></div>
+            </div>
+            <div class="panel">
+              <div class="phead"><div><h3>Embudo de leads</h3><div class="desc">Estado de los 31 autodiagnósticos</div></div></div>
+              <div class="funnel">
+                <span style="width:9.7%;background:var(--info)"></span>
+                <span style="width:25.8%;background:var(--mid)"></span>
+                <span style="width:19.4%;background:var(--magenta)"></span>
+                <span style="width:22.6%;background:var(--ok)"></span>
+                <span style="width:22.6%;background:var(--tinta2)"></span>
+              </div>
+              <div class="legend">
+                <div class="li"><span class="d" style="background:var(--info)"></span>Nuevos <b>3</b></div>
+                <div class="li"><span class="d" style="background:var(--mid)"></span>Contactados <b>8</b></div>
+                <div class="li"><span class="d" style="background:var(--magenta)"></span>En conversación <b>6</b></div>
+                <div class="li"><span class="d" style="background:var(--ok)"></span>Clientes <b>7</b></div>
+                <div class="li"><span class="d" style="background:var(--tinta2)"></span>Descartados <b>7</b></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- LEADS / AUTODIAGNÓSTICOS -->
+        <section class="page" id="q-leads">
+          <div class="pagehead"><div><h1>Autodiagnósticos</h1><div class="d">Empresas que se diagnosticaron solas desde la web. Cada una es un lead calificado.</div></div><button class="btn ghost sm">Exportar CSV</button></div>
+          <div class="toolbar">
+            <div class="filters" id="leadFilters">
+              <button class="fpill on" data-f="all" onclick="filterLeads('all',this)">Todos <span class="c" id="c-all">0</span></button>
+              <button class="fpill" data-f="nuevo" onclick="filterLeads('nuevo',this)">Nuevos <span class="c" id="c-nuevo">0</span></button>
+              <button class="fpill" data-f="contactado" onclick="filterLeads('contactado',this)">Contactados <span class="c" id="c-contactado">0</span></button>
+              <button class="fpill" data-f="conversacion" onclick="filterLeads('conversacion',this)">En conversación <span class="c" id="c-conversacion">0</span></button>
+              <button class="fpill" data-f="cliente" onclick="filterLeads('cliente',this)">Clientes <span class="c" id="c-cliente">0</span></button>
+            </div>
+          </div>
+          <div class="tablecard">
+            <table>
+              <thead><tr><th>Empresa</th><th>Contacto</th><th>Rubro</th><th>Fecha</th><th>Madurez</th><th>Fugas</th><th>Estado</th></tr></thead>
+              <tbody id="leadRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ALL DIAGNOSTICS (reuse leads style, simple) -->
+        <section class="page" id="q-all">
+          <div class="pagehead"><div><h1>Todos los diagnósticos</h1><div class="d">Inbound (autodiagnóstico) + los que armó el equipo.</div></div><button class="btn sm" onclick="qnav('new')">+ Nuevo</button></div>
+          <div class="tablecard"><table><thead><tr><th>Empresa</th><th>Origen</th><th>Fecha</th><th>Estado</th><th>Madurez</th></tr></thead><tbody id="allRows"></tbody></table></div>
+        </section>
+
+        <!-- DETAIL -->
+        <section class="page" id="q-detail">
+          <div style="margin-bottom:16px"><button class="btn ghost sm" onclick="qnav('leads')">← Autodiagnósticos</button></div>
+          <div class="detail-head">
+            <div class="co"><div class="colgo" style="width:48px;height:48px;font-size:1.1rem;background:var(--grad)" id="dInit">CS</div>
+              <div><h1 id="dName">Constructora del Sur</h1><div class="meta" id="dMeta">Desarrollo y construcción · Bahía Blanca · Jul 2026</div></div></div>
+            <div class="dactions"><span class="pill p-nuevo" id="dEstado"><span class="pd"></span>Nuevo</span><button class="btn ghost sm">Exportar PDF</button><button class="btn ghost sm">Enviar al cliente</button><button class="btn sm">Marcar revisado ✓</button></div>
+          </div>
+          <div class="tabs">
+            <button class="tab active" onclick="qtab(this,'t-res')">Resumen</button>
+            <button class="tab" onclick="qtab(this,'t-sitio')">Sitio web</button>
+            <button class="tab" onclick="qtab(this,'t-seo')">SEO</button>
+            <button class="tab" onclick="qtab(this,'t-ads')">Google Ads</button>
+            <button class="tab" onclick="qtab(this,'t-meta')">Meta Ads</button>
+            <button class="tab" onclick="qtab(this,'t-redes')">Redes</button>
+            <button class="tab" onclick="qtab(this,'t-med')">Medición</button>
+            <button class="tab" onclick="qtab(this,'t-comp')">Competencia</button>
+          </div>
+          <div class="tabpane active" id="t-res">
+            <div class="summaryban"><strong>Síntesis:</strong> el contenido en redes está a la altura de la empresa. El resto de los canales de captación están apagados o con roturas que impiden que la consulta llegue. Score general: <strong>38/100</strong>.</div>
+            <div class="scoregrid">
+              <div class="sc"><div class="t"><h4>Sitio web</h4><span class="pill p-descartado" style="background:var(--warnbg);color:var(--warn)">Fallas críticas</span></div><div class="dots"><i class="f"></i><i class="f"></i><i></i><i></i><i></i></div><p>El botón de contacto de la obra principal cae en una página rota.</p></div>
+              <div class="sc"><div class="t"><h4>SEO / Google</h4><span class="pill p-conversacion">Parcial</span></div><div class="dots"><i class="f"></i><i class="f"></i><i></i><i></i><i></i></div><p>Aparece por marca, no por lo que busca el comprador.</p></div>
+              <div class="sc"><div class="t"><h4>Google Ads</h4><span class="pill p-descartado">Ausente</span></div><div class="dots"><i class="f"></i><i></i><i></i><i></i><i></i></div><p>Sin presencia en búsquedas de alta intención.</p></div>
+              <div class="sc"><div class="t"><h4>Meta Ads</h4><span class="pill p-descartado">Ausente</span></div><div class="dots"><i class="f"></i><i></i><i></i><i></i><i></i></div><p>Un competidor directo ya pauta sobre la misma plaza.</p></div>
+              <div class="sc"><div class="t"><h4>Redes sociales</h4><span class="pill p-cliente">Activo</span></div><div class="dots"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i></div><p>Contenido cuidado. Falta amplificación y guión de conversión.</p></div>
+              <div class="sc"><div class="t"><h4>Medición</h4><span class="pill p-descartado">Ausente</span></div><div class="dots"><i class="f"></i><i></i><i></i><i></i><i></i></div><p>Sin GA4, píxel ni registro de origen del lead.</p></div>
+            </div>
+          </div>
+          <div class="tabpane" id="t-sitio"><div class="panel"><h3>Inspección del sitio</h3><div class="desc">Chequeos automáticos + recorrido del comprador.</div>
+            <div class="checkrow"><div class="ci bad">✕</div><div><div class="t">Title tag sin propuesta</div><div class="d">No menciona ciudad, producto ni estado de obra.</div></div></div>
+            <div class="checkrow"><div class="ci bad">✕</div><div><div class="t">URLs de fichas crípticas</div><div class="d">Viven en direcciones como /martin/. Google no las rankea.</div></div></div>
+            <div class="checkrow"><div class="ci bad">3</div><div><div class="t">Links rotos en el contacto</div><div class="d">«Contactenos» cae en «under construction».</div></div></div>
+            <div class="checkrow"><div class="ci mid">!</div><div><div class="t">Formulario que no califica</div><div class="d">Pide solo nombre y mail.</div></div></div>
+            <div class="checkrow"><div class="ci good">✓</div><div><div class="t">Responsive en mobile</div><div class="d">Se adapta bien a pantallas chicas.</div></div></div></div></div>
+          <div class="tabpane" id="t-seo"><div class="panel"><h3>SEO / Google orgánico</h3><div class="checkrow"><div class="ci bad">✕</div><div><div class="t">No rankea por categoría</div><div class="d">Para «pozo en Monte Hermoso» aparecen portales, no la empresa.</div></div></div><div class="checkrow"><div class="ci bad">✕</div><div><div class="t">Sin contenido indexado</div><div class="d">No hay blog ni fichas técnicas.</div></div></div></div></div>
+          <div class="tabpane" id="t-ads"><div class="panel"><h3>Google Ads</h3><div class="checkrow"><div class="ci bad">✕</div><div><div class="t">0 anuncios activos</div><div class="d">Sin presencia en el Centro de Transparencia.</div></div></div><div class="checkrow"><div class="ci mid">!</div><div><div class="t">Inversión a validar</div><div class="d">Requiere accesos de solo lectura.</div></div></div></div></div>
+          <div class="tabpane" id="t-meta"><div class="panel"><h3>Meta Ads</h3><div class="checkrow"><div class="ci bad">✕</div><div><div class="t">Sin anuncios propios</div><div class="d">Página verificada, sin pauta.</div></div></div><div class="checkrow"><div class="ci mid">!</div><div><div class="t">La competencia sí pauta</div><div class="d">Competidor B: 4 anuncios activos desde febrero.</div></div></div></div></div>
+          <div class="tabpane" id="t-redes"><div class="panel"><h3>Redes sociales</h3><div class="checkrow"><div class="ci good">✓</div><div><div class="t">Contenido de calidad</div><div class="d">~4.000 seguidores orgánicos, identidad consistente.</div></div></div><div class="checkrow"><div class="ci mid">!</div><div><div class="t">Sin pauta detrás</div><div class="d">Llega solo a quien ya los sigue.</div></div></div></div></div>
+          <div class="tabpane" id="t-med"><div class="panel"><h3>Medición</h3><div class="checkrow"><div class="ci bad">✕</div><div><div class="t">Sin GA4 ni GTM</div></div></div><div class="checkrow"><div class="ci bad">✕</div><div><div class="t">Sin píxel de Meta</div></div></div><div class="checkrow"><div class="ci bad">✕</div><div><div class="t">Sin etiquetas de conversión</div></div></div></div></div>
+          <div class="tabpane" id="t-comp"><div class="panel"><h3>Mapa del sector</h3><div class="desc">Contra los 2 competidores verificados.</div>
+            <table class="comptable"><thead><tr><th>&nbsp;</th><th>Esta empresa</th><th>Competidor A</th><th>Competidor B</th></tr></thead><tbody>
+              <tr><td>Reseñas Google</td><td class="you">0</td><td>16 · 4,4★</td><td>6 · 4,2★</td></tr>
+              <tr><td>Ficha ordenada</td><td class="you"><span class="cross">✕</span></td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td></tr>
+              <tr><td>Portales con marca propia</td><td class="you"><span class="cross">✕</span></td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td></tr>
+              <tr><td>Meta Ads activos</td><td class="you"><span class="cross">✕</span></td><td><span class="cross">✕</span></td><td><span class="tick">✓ 4</span></td></tr>
+            </tbody></table></div></div>
+        </section>
+
+        <section class="page" id="q-new"><div class="emptyq"><div class="big">✦</div><h3 style="font-family:'DM Sans';font-weight:700;margin-top:10px">Nuevo diagnóstico manual</h3><p style="margin-top:8px">Mismo formulario del autodiagnóstico, cargado por el equipo.<br>— placeholder —</p><button class="btn" style="margin-top:18px" onclick="qnav('leads')">Ir a autodiagnósticos</button></div></section>
+        <section class="page" id="q-competencia">
+          <div class="pagehead"><div><h1>Competencia</h1><div class="d">El mapa del sector: quién pauta, quién rankea y dónde está la vara del mercado.</div></div><button class="btn ghost sm">Actualizar datos</button></div>
+
+          <div class="toolbar"><div class="filters">
+            <button class="fpill on">Construcción · Bahía Blanca</button>
+            <button class="fpill">Indumentaria</button>
+            <button class="fpill">Industria</button>
+            <button class="fpill">+ Agregar sector</button>
+          </div></div>
+
+          <div class="stats">
+            <div class="tile"><div class="lbl"><span class="dotico" style="background:var(--navy)"></span>Competidores</div><div class="val">4</div><div class="delta n">monitoreados en el sector</div></div>
+            <div class="tile"><div class="lbl"><span class="dotico" style="background:var(--coral)"></span>Con pauta activa</div><div class="val">3</div><div class="delta n">de 4 competidores</div></div>
+            <div class="tile"><div class="lbl"><span class="dotico" style="background:var(--magenta)"></span>Anuncios detectados</div><div class="val">10</div><div class="delta n">Google + Meta, hoy</div></div>
+            <div class="tile"><div class="lbl"><span class="dotico" style="background:var(--tinta2)"></span>Sin medición visible</div><div class="val">4</div><div class="delta n">oportunidad abierta</div></div>
+          </div>
+
+          <div class="tablecard">
+            <table>
+              <thead><tr><th>Anunciante</th><th>Google Ads</th><th>Meta Ads</th><th>SEO</th><th>Ficha Google</th><th>Notas</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><div class="co"><div class="colgo" style="width:34px;height:34px;background:linear-gradient(135deg,#B50CC5,#252851)">GS</div><div style="font-weight:600">Grupo Sur Desarrollos</div></div></td>
+                  <td><div class="adcell"><b>3</b><span class="adbar"><i style="width:60%"></i></span></div></td>
+                  <td><div class="adcell"><b>4</b><span class="adbar"><i style="width:80%"></i></span></div></td>
+                  <td><span class="seo-f">Fuerte</span></td>
+                  <td><span class="tick">✓</span> 6 · 4,2★</td>
+                  <td style="color:var(--tinta);font-size:.85rem">Rehízo el sitio en dic-2025. Pauta sostenida desde febrero.</td>
+                </tr>
+                <tr>
+                  <td><div class="co"><div class="colgo" style="width:34px;height:34px;background:linear-gradient(135deg,#FE6F61,#B50CC5)">GW</div><div style="font-weight:600">Galak-Wasserman</div></div></td>
+                  <td><div class="adcell zero"><b>0</b><span class="adbar"></span></div></td>
+                  <td><div class="adcell zero"><b>0</b><span class="adbar"></span></div></td>
+                  <td><span class="seo-m">Medio</span></td>
+                  <td><span class="tick">✓</span> 16 · 4,4★</td>
+                  <td style="color:var(--tinta);font-size:.85rem">Buena reputación, todavía sin pauta.</td>
+                </tr>
+                <tr>
+                  <td><div class="co"><div class="colgo" style="width:34px;height:34px;background:linear-gradient(135deg,#FE6F61,#252851)">GT</div><div style="font-weight:600">Fideicomiso Green Tower</div></div></td>
+                  <td><div class="adcell zero"><b>0</b><span class="adbar"></span></div></td>
+                  <td><div class="adcell"><b>2</b><span class="adbar"><i style="width:40%"></i></span></div></td>
+                  <td><span class="seo-b">Bajo</span></td>
+                  <td><span class="cross">✕</span></td>
+                  <td style="color:var(--tinta);font-size:.85rem">Pauta por proyecto puntual.</td>
+                </tr>
+                <tr>
+                  <td><div class="co"><div class="colgo" style="width:34px;height:34px;background:linear-gradient(135deg,#B50CC5,#FE6F61)">AC</div><div style="font-weight:600">Alem Cristal</div></div></td>
+                  <td><div class="adcell zero"><b>0</b><span class="adbar"></span></div></td>
+                  <td><div class="adcell"><b>1</b><span class="adbar"><i style="width:20%"></i></span></div></td>
+                  <td><span class="seo-b">Bajo</span></td>
+                  <td><span class="cross">✕</span></td>
+                  <td style="color:var(--tinta);font-size:.85rem">Anuncio único, entrega baja.</td>
+                </tr>
+                <tr class="rowyou">
+                  <td><div class="co"><div class="colgo" style="width:34px;height:34px;background:linear-gradient(135deg,#FE6F61,#B50CC5)">CS</div><div><div style="font-weight:700">Constructora del Sur</div><div class="sub">tu cliente / prospecto</div></div></div></td>
+                  <td><div class="adcell zero"><b>0</b><span class="adbar"></span></div></td>
+                  <td><div class="adcell zero"><b>0</b><span class="adbar"></span></div></td>
+                  <td><span class="seo-b">Bajo</span></td>
+                  <td><span class="cross">✕</span> duplicada</td>
+                  <td style="color:var(--tinta);font-size:.85rem">Sin pauta ni medición. Ficha sin reseñas.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="readings">
+            <div class="reading u"><span class="k">Urgencia</span><h4>Grupo Sur ya compra la demanda</h4><p>Cada búsqueda de alta intención que capta es una consulta que hoy no llega al resto del sector. Empezó en febrero y no tiene competencia directa en pauta.</p></div>
+            <div class="reading o"><span class="k">Oportunidad</span><h4>Google Ads casi vacío</h4><p>En construcción local casi nadie pauta en búsqueda. El que entra ahora lo hace barato y sin puja. La ventana sigue abierta.</p></div>
+          </div>
+
+          <div class="notecard">🔒 Placeholder · los conteos salen del Centro de Transparencia de Google y la Biblioteca de Anuncios de Meta. Se descartaron portales (Zonaprop) e inmobiliarias por no competir de verdad. Inversión y presupuestos no son públicos: se validan con accesos de solo lectura.</div>
+        </section>
+        <section class="page" id="q-config"><div class="emptyq"><div class="big">⚙</div><h3 style="font-family:'DM Sans';font-weight:700;margin-top:10px">Configuración</h3><p style="margin-top:8px">Marca del informe, integraciones (Drive, calendario) y equipo.<br>— placeholder —</p></div></section>
+      </div>
+    </div>
+  </div>
+
+  <!-- DRAWER -->
+  <div class="scrim" id="scrim" onclick="closeLead()"></div>
+  <aside class="drawer" id="drawer">
+    <div class="dh">
+      <div class="co-lg"><div class="colgo" id="drInit">CS</div><div><h2 id="drName">—</h2><div class="sub" id="drSub">—</div></div></div>
+      <button class="x" onclick="closeLead()">✕</button>
+    </div>
+    <div class="db">
+      <div class="sectt">Contacto</div>
+      <div class="kv"><span class="k">Persona</span><span class="v" id="drPerson">—</span><span class="k">Email</span><span class="v"><a id="drEmail" href="#">—</a></span><span class="k">Sitio</span><span class="v"><a id="drSite" href="#">—</a></span><span class="k">Le vende a</span><span class="v" id="drTipo">—</span></div>
+      <div class="sectt">Su diagnóstico <span style="margin-left:auto;font-family:'Unbounded';font-weight:700;color:var(--navy)" id="drScore">—</span></div>
+      <div id="drChannels"></div>
+      <div class="sectt">Estado del lead</div>
+      <div class="statusrow" id="drStatus">
+        <span class="sopt">Nuevo</span><span class="sopt">Contactado</span><span class="sopt">En conversación</span><span class="sopt">Cliente</span><span class="sopt">Descartado</span>
+      </div>
+    </div>
+    <div class="df">
+      <button class="btn ghost sm" style="flex:1;justify-content:center" onclick="alert('Placeholder: enviar mail')">Enviar mail</button>
+      <button class="btn sm" style="flex:1;justify-content:center" onclick="openFull()">Abrir informe completo →</button>
+    </div>
+  </aside>
+</div>
+
+<!-- ============================ MODE: EMPRESA ============================ -->
+<div class="mode" id="mode-empresa">
+  <div class="cbar"><div class="in">
+    <div class="logo"><svg class="mark" viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg><div class="txt">qualita<small>AUTODIAGNÓSTICO</small></div></div>
+    <div class="tag" id="barTag">Es gratis · sin instalar nada</div>
+  </div></div>
+
+  <!-- LANDING -->
+  <div class="cview active" id="clanding">
+    <section class="lhero">
+      <div class="aura a-mag" style="width:480px;height:480px;top:-140px;right:-80px"></div>
+      <div class="aura a-cor" style="width:380px;height:380px;bottom:-150px;left:-110px;opacity:.4"></div>
+      <div class="cwrap">
+        <span class="kicker" style="color:var(--coral)">Autodiagnóstico digital · gratis</span>
+        <h1 style="margin-top:18px">Descubrí dónde se te <span class="g">fugan las consultas</span></h1>
+        <p class="sub">Cargá tu sitio y tus redes. Revisamos los 5 canales por donde entra (o se pierde) una consulta y te devolvemos un informe claro, sin vueltas.</p>
+        <div class="ctarow">
+          <button class="btn" onclick="goStep(1);cshow('cform')">Empezar mi diagnóstico →</button>
+          <button class="btn ghost sm" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.25)" onclick="cshow('cresult')">Ver un ejemplo</button>
+        </div>
+        <p class="mini">Sin costo · resultado en minutos · no pedimos accesos ni contraseñas</p>
+      </div>
+    </section>
+
+    <section class="blk"><div class="cwrap">
+      <span class="kicker">Cómo funciona</span><h2 style="margin-top:10px">Tres pasos, cero fricción</h2>
+      <div class="steprow" style="margin-top:22px">
+        <div class="stepc"><div class="b">1</div><h3>Cargás tus datos</h3><p>Nombre, sitio, redes y rubro. Un formulario corto de 2 minutos.</p></div>
+        <div class="stepc"><div class="b">2</div><h3>Analizamos todo</h3><p>Sitio, Google, Ads, redes y medición. También a tu competencia directa.</p></div>
+        <div class="stepc"><div class="b">3</div><h3>Recibís tu informe</h3><p>El estado de cada canal y dónde estás perdiendo demanda, en lenguaje claro.</p></div>
+      </div>
+    </div></section>
+
+    <section class="blk" style="background:var(--crema)"><div class="cwrap">
+      <span class="kicker">Qué miramos</span><h2 style="margin-top:10px">Los 5 canales + tu medición</h2>
+      <p class="sub">Cada uno es una puerta por donde puede entrar una consulta.</p>
+      <div class="chgrid" style="margin-top:22px">
+        <div class="chcard"><div class="n">01</div><h3>Sitio web</h3><p>El recorrido del comprador, links rotos y si el contacto capta el dato.</p></div>
+        <div class="chcard"><div class="n">02</div><h3>SEO / Google</h3><p>Si aparecés por lo que la gente busca, o solo por tu marca.</p></div>
+        <div class="chcard"><div class="n">03</div><h3>Google Ads</h3><p>Tu presencia en las búsquedas de alta intención.</p></div>
+        <div class="chcard"><div class="n">04</div><h3>Meta Ads</h3><p>Anuncios activos, los tuyos y los de la competencia.</p></div>
+        <div class="chcard"><div class="n">05</div><h3>Redes + ficha Google</h3><p>Calidad, alcance y reputación online.</p></div>
+        <div class="chcard" style="background:var(--grad-mv);color:#fff;border:none"><div class="n" style="color:#fff">+</div><h3 style="color:#fff">Medición</h3><p style="color:rgba(255,255,255,.82)">GA4, píxel y de dónde viene cada consulta.</p></div>
+      </div>
+    </div></section>
+
+    <section class="blk"><div class="cwrap">
+      <div class="giveaway">
+        <div>
+          <span class="kicker">Qué vas a recibir</span><h2 style="margin-top:10px">Un informe que se entiende en 30 segundos</h2>
+          <p class="sub" style="margin-bottom:20px">Nada de tecnicismos. Un puntaje de madurez, el estado de cada canal y cómo te comparás con tu competencia directa.</p>
+          <button class="btn" onclick="cshow('cresult')">Ver un ejemplo completo →</button>
+        </div>
+        <div class="previewcard">
+          <div style="font-weight:700;margin-bottom:8px">Tu madurez digital</div>
+          <div class="pvrow"><span>Sitio web</span><span class="st st-crit">Fallas críticas</span></div>
+          <div class="pvrow"><span>SEO / Google</span><span class="st st-par">Parcial</span></div>
+          <div class="pvrow"><span>Google Ads</span><span class="st st-aus">Ausente</span></div>
+          <div class="pvrow"><span>Redes sociales</span><span class="st st-act">Activo</span></div>
+          <div class="pvrow"><span>Medición</span><span class="st st-aus">Ausente</span></div>
+        </div>
+      </div>
+    </div></section>
+
+    <section class="blk" style="border:none"><div class="cwrap">
+      <div class="cta-band"><div class="aura a-cor" style="width:280px;height:280px;top:-80px;right:-40px;opacity:.5"></div>
+        <div style="position:relative;z-index:2"><span class="ast" style="font-size:1.8rem;color:#fff">*</span>
+        <h2 style="margin-top:10px">Empezá por saber dónde estás parado</h2>
+        <p>El diagnóstico es gratis. Lo que hagas con él, lo decidís vos.</p>
+        <button class="btn white" onclick="goStep(1);cshow('cform')">Empezar mi diagnóstico</button></div>
+      </div>
+    </div></section>
+
+    <div class="cfooter"><div class="in"><div class="logo"><svg class="mark" viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg><div class="txt" style="color:#fff">qualita<small style="color:rgba(255,255,255,.5)">STUDIO</small></div></div><div class="links"><span>qualita.studio</span><span>hola@qualita.studio</span></div></div></div>
+  </div>
+
+  <!-- FORM -->
+  <div class="cview" id="cform"><div class="cwrap formwrap">
+    <span class="kicker">Paso <span id="stepNum">1</span> de 3</span>
+    <div class="progress"><div class="seg on" id="s1"></div><div class="seg" id="s2"></div><div class="seg" id="s3"></div></div>
+    <div class="fstep active" data-step="1">
+      <div class="steptitle">Empecemos por tu empresa</div>
+      <div class="stepsub">Con esto ubicamos tu mercado y a tu competencia directa.</div>
+      <div class="field"><label>Nombre de tu empresa</label><input placeholder="Ej. Constructora del Sur S.A."></div>
+      <div class="field"><label>Sitio web</label><input placeholder="https://tuempresa.com"></div>
+      <div class="row2"><div class="field"><label>Rubro</label><select><option>Seleccioná…</option><option>Desarrollo y construcción</option><option>Indumentaria / textil</option><option>Industria</option><option>Servicios</option></select></div><div class="field"><label>Provincia</label><div class="combo"><input class="comboinput" id="zonaInput" placeholder="Elegí tu provincia" autocomplete="off" oninput="openZonas()" onfocus="openZonas()"><span class="caret">▾</span><div class="combo-list" id="zonaList"></div></div></div></div>
+      <div class="formnav"><span></span><button class="btn" onclick="goStep(2)">Siguiente →</button></div>
+      <div class="reassure">🔒 Usamos solo información pública. No pedimos accesos ni contraseñas.</div>
+    </div>
+    <div class="fstep" data-step="2">
+      <div class="steptitle">¿Dónde estás presente?</div>
+      <div class="stepsub">Dejá lo que tengas. Lo que falte también nos dice algo.</div>
+      <div class="field"><label>Instagram <span class="hint">opcional</span></label><input placeholder="@tuempresa"></div>
+      <div class="field"><label>Facebook <span class="hint">opcional</span></label><input placeholder="facebook.com/tuempresa"></div>
+      <div class="row2"><div class="field"><label>LinkedIn <span class="hint">opcional</span></label><input placeholder="linkedin.com/company/…"></div><div class="field"><label>Ficha de Google <span class="hint">opcional</span></label><input placeholder="Nombre en Maps"></div></div>
+      <div class="formnav"><button class="btn ghost" onclick="goStep(1)">← Volver</button><button class="btn" onclick="goStep(3)">Siguiente →</button></div>
+    </div>
+    <div class="fstep" data-step="3">
+      <div class="steptitle">Un poco de contexto</div>
+      <div class="stepsub">Nos ayuda a afinar el diagnóstico y a compararte bien.</div>
+      <div class="field"><label>¿A quién le vendés?</label><div class="pillopts"><label><input type="radio" name="cli">Mayorista / B2B</label><label><input type="radio" name="cli">Minorista</label><label><input type="radio" name="cli">Ambos</label></div></div>
+      <div class="field"><label>Competidores que conozcas <span class="hint">opcional</span></label><textarea rows="2" placeholder="Nombres o sitios"></textarea></div>
+      <div class="row2"><div class="field"><label>Tu nombre</label><input placeholder="Nombre y apellido"></div><div class="field"><label>Email <span class="hint">te avisamos acá</span></label><input placeholder="vos@tuempresa.com"></div></div>
+      <div class="formnav"><button class="btn ghost" onclick="goStep(2)">← Volver</button><button class="btn" onclick="startLoading()">Generar mi diagnóstico ✦</button></div>
+    </div>
+  </div></div>
+
+  <!-- LOADING -->
+  <div class="cview" id="cloading"><section class="loading">
+    <div class="aura a-mag" style="width:500px;height:500px;top:-120px;right:-60px"></div>
+    <div class="aura a-cor" style="width:400px;height:400px;bottom:-140px;left:-100px;opacity:.4"></div>
+    <div class="cwrap">
+      <span class="ast" style="font-size:2.2rem;color:#fff">*</span>
+      <h1>Estamos analizando tu presencia digital</h1>
+      <p>Esto tarda unos minutos. Podés cerrar la pestaña: te avisamos por mail cuando esté listo.</p>
+      <div class="checklist" id="checklist">
+        <div class="ck"><span class="ic"></span><span>Revisando tu sitio web</span></div>
+        <div class="ck"><span class="ic"></span><span>Viendo cómo aparecés en Google</span></div>
+        <div class="ck"><span class="ic"></span><span>Chequeando tu medición</span></div>
+        <div class="ck"><span class="ic"></span><span>Mirando a tu competencia</span></div>
+        <div class="ck"><span class="ic"></span><span>Armando tu informe</span></div>
+      </div>
+      <div id="cta2"><button class="btn" onclick="cshow('cresult')">Ver mi diagnóstico →</button></div>
+    </div>
+  </section></div>
+
+  <!-- RESULT -->
+  <div class="cview" id="cresult">
+    <div class="rhead">
+      <div class="aura a-mag" style="width:440px;height:440px;top:-170px;right:-60px;opacity:.4"></div>
+      <div class="aura a-cor" style="width:360px;height:360px;bottom:-190px;left:-120px;opacity:.32"></div>
+      <span class="ast" style="position:absolute;top:36px;right:7%;font-size:2rem;color:rgba(255,255,255,.22);z-index:2">*</span>
+      <div class="cwrap rhead-grid">
+        <div>
+          <span class="kicker">Tu diagnóstico está listo</span>
+          <h1>Constructora del Sur</h1>
+          <p class="lede">Tu contenido en redes está muy bien. El problema es que el resto de los canales no dejan que la consulta llegue.</p>
+          <p class="rmeta">Desarrollo y construcción &middot; Bahía Blanca &middot; Julio 2026</p>
+          <div class="actions"><button class="btn ghost sm" onclick="alert('Placeholder: descargar PDF')">&#8595; Descargar PDF</button><button class="btn ghost sm" onclick="alert('Placeholder: compartir')">Compartir</button></div>
+        </div>
+        <div class="scorepanel">
+          <div class="sp-top">
+            <div class="sp-num"><b id="scoreNum">0</b><span>/100</span></div>
+            <div class="sp-lab">Madurez digital<br><span class="lvl">Nivel inicial</span></div>
+          </div>
+          <div class="sp-scale">
+            <div class="sp-track"><span class="sp-marker" id="spMarker" style="left:0%"></span></div>
+            <div class="sp-bands"><span>Inicial</span><span>En desarrollo</span><span>Sólido</span></div>
+          </div>
+          <div class="sp-pillars">
+            <div><div class="sp-p-row"><span class="sp-dot brand"></span><span>Marca implementadora</span><b>64</b></div><span class="sp-mini brand"><i data-w="64" style="width:64%"></i></span></div>
+            <div><div class="sp-p-row"><span class="sp-dot infra"></span><span>Infraestructura digital</span><b>26</b></div><span class="sp-mini infra"><i data-w="26" style="width:26%"></i></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PILARES (2 tabs grandes) -->
+    <section class="blk"><div class="cwrap">
+      <span class="kicker">Tu diagnóstico en dos pilares</span>
+      <h2 style="margin-top:12px">Marca e Infraestructura</h2>
+      <p class="sub">Tu presencia se evalúa en dos frentes. Tocá cada uno para ver su puntaje y el detalle.</p>
+
+      <div class="bigtabs">
+        <button class="bigtab active" onclick="ptab(this,'pt-marca')">
+          <span class="bt-num">1</span>
+          <span class="bt-txt"><b>Marca implementadora</b><small>Branding &middot; redes &middot; reputación</small></span>
+        </button>
+        <button class="bigtab" onclick="ptab(this,'pt-infra')">
+          <span class="bt-num">2</span>
+          <span class="bt-txt"><b>Infraestructura digital</b><small>Sitio &middot; SEO &middot; anuncios &middot; medición</small></span>
+        </button>
+      </div>
+
+      <div class="ptpane active" id="pt-marca">
+        <div class="pillhero brand">
+          <div class="ph-ring">
+            <svg viewBox="0 0 96 96" width="96" height="96"><circle cx="48" cy="48" r="40" stroke="#eee" stroke-width="9" fill="none"/><circle class="ph-prog" data-off="90.5" cx="48" cy="48" r="40" stroke="var(--magenta)" stroke-width="9" fill="none" stroke-linecap="round" stroke-dasharray="251.3" stroke-dashoffset="90.5" transform="rotate(-90 48 48)"/></svg>
+            <div class="ph-num"><b>64</b><small>/100</small></div>
+          </div>
+          <div class="ph-tx"><span class="ph-status mid">En desarrollo</span><h3>Marca implementadora</h3><p>Cómo te ve quien todavía no te conoce: identidad, comunicación, redes y reputación. Es tu punto más fuerte &mdash; falta amplificarlo y que la trayectoria se note.</p></div>
+        </div>
+        <div class="scoregrid2">
+          <div class="sc"><div class="t"><h4>Redes sociales</h4><span class="st st-act">Activo</span></div><div class="dots"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i></div><p>Contenido de calidad y ~4.000 seguidores orgánicos. Le falta empuje para llegar a gente nueva y un guión que invite a consultar.</p></div>
+          <div class="sc"><div class="t"><h4>Contenido y comunicación</h4><span class="st st-act">Bueno</span></div><div class="dots"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i></div><p>Fotografía cuidada y obras bien mostradas. El mensaje no orienta a la acción ni cuenta la trayectoria.</p></div>
+          <div class="sc"><div class="t"><h4>Identidad de marca</h4><span class="st st-par">Sólida</span></div><div class="dots"><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i></i></div><p>Identidad consistente y 40+ años de trayectoria que hoy no se ven reflejados online.</p></div>
+          <div class="sc"><div class="t"><h4>Ficha de Google y reputación</h4><span class="st st-crit">Débil</span></div><div class="dots"><i class="f"></i><i class="f"></i><i></i><i></i><i></i></div><p>Ficha duplicada y sin reseñas. La reputación real no le llega a quien te busca antes de decidir.</p></div>
+        </div>
+      </div>
+
+      <div class="ptpane" id="pt-infra">
+        <div class="pillhero infra">
+          <div class="ph-ring">
+            <svg viewBox="0 0 96 96" width="96" height="96"><circle cx="48" cy="48" r="40" stroke="#eee" stroke-width="9" fill="none"/><circle class="ph-prog" data-off="186" cx="48" cy="48" r="40" stroke="var(--coral)" stroke-width="9" fill="none" stroke-linecap="round" stroke-dasharray="251.3" stroke-dashoffset="186" transform="rotate(-90 48 48)"/></svg>
+            <div class="ph-num"><b>26</b><small>/100</small></div>
+          </div>
+          <div class="ph-tx"><span class="ph-status warn">Crítico</span><h3>Infraestructura digital</h3><p>Lo que hace que la consulta llegue o se pierda: sitio, SEO, anuncios y medición. Acá está el cuello de botella que hoy corta la mayoría de las consultas.</p></div>
+        </div>
+        <p class="sub" style="margin:0 0 8px">El detalle técnico, vertical por vertical:</p>
+        <div class="tabs">
+          <button class="tab active" onclick="ctab(this,'ci-sitio')">Sitio web</button>
+          <button class="tab" onclick="ctab(this,'ci-seo')">SEO</button>
+          <button class="tab" onclick="ctab(this,'ci-gads')">Google Ads</button>
+          <button class="tab" onclick="ctab(this,'ci-meta')">Meta Ads</button>
+          <button class="tab" onclick="ctab(this,'ci-med')">Medición</button>
+        </div>
+        <div class="tabpane active" id="ci-sitio"><div class="panel">
+          <h3>Sitio web</h3><div class="desc">El recorrido del comprador más los chequeos técnicos.</div>
+          <div class="checkrow"><div class="ci bad">&#10005;</div><div><div class="t">Title tag sin propuesta de valor</div><div class="d">No menciona ciudad, producto ni estado de obra. Google no entiende qué vende la home.</div></div></div>
+          <div class="checkrow"><div class="ci bad">&#10005;</div><div><div class="t">URLs de fichas no descriptivas</div><div class="d">Las obras viven en /martin/ en vez de /martiniano-572-departamentos-bahia-blanca/.</div></div></div>
+          <div class="checkrow"><div class="ci bad">3</div><div><div class="t">3 links rotos en el camino de contacto</div><div class="d">El botón «Contactenos» de la obra principal cae en una página «under construction».</div></div></div>
+          <div class="checkrow"><div class="ci mid">!</div><div><div class="t">Formulario que no califica</div><div class="d">Pide solo nombre y mail. No pregunta el proyecto de interés ni separa mayorista de minorista.</div></div></div>
+          <div class="checkrow"><div class="ci mid">!</div><div><div class="t">Sin página por ciudad ni por estado de obra</div><div class="d">Los 19 emprendimientos están mezclados en una sola lista.</div></div></div>
+          <div class="checkrow"><div class="ci good">&#10003;</div><div><div class="t">Responsive en mobile</div><div class="d">Se adapta bien a pantallas chicas.</div></div></div>
+          <div class="checkrow"><div class="ci good">&#10003;</div><div><div class="t">HTTPS activo</div><div class="d">El sitio carga sobre conexión segura.</div></div></div>
+        </div></div>
+        <div class="tabpane" id="ci-seo"><div class="panel">
+          <h3>SEO / Google orgánico</h3><div class="desc">Cómo aparecés cuando buscan tus productos.</div>
+          <div class="checkrow"><div class="ci bad">&#10005;</div><div><div class="t">No rankea por categoría</div><div class="d">Para «departamentos en pozo Monte Hermoso» aparecen portales y terceros, no la empresa.</div></div></div>
+          <div class="checkrow"><div class="ci bad">&#10005;</div><div><div class="t">Sin contenido ni blog indexado</div><div class="d">No hay notas ni fichas técnicas que posicionen por búsquedas informativas.</div></div></div>
+          <div class="checkrow"><div class="ci mid">!</div><div><div class="t">Rankea solo por marca</div><div class="d">Te encuentra quien ya te conoce. Quien no, llega a la competencia.</div></div></div>
+          <div class="checkrow"><div class="ci good">&#10003;</div><div><div class="t">Sitio indexado</div><div class="d">Las páginas están accesibles para el buscador.</div></div></div>
+        </div></div>
+        <div class="tabpane" id="ci-gads"><div class="panel">
+          <h3>Google Ads</h3><div class="desc">Presencia en las búsquedas de alta intención.</div>
+          <div class="checkrow"><div class="ci bad">&#10005;</div><div><div class="t">0 anuncios activos</div><div class="d">Sin presencia en el Centro de Transparencia de Google Ads.</div></div></div>
+          <div class="checkrow"><div class="ci mid">!</div><div><div class="t">Sin etiquetas de conversión</div><div class="d">Aunque se pautara hoy, no se podría medir qué clic genera una consulta.</div></div></div>
+          <div class="checkrow"><div class="ci mid">!</div><div><div class="t">Inversión a validar</div><div class="d">Presupuestos e impresiones no son públicos: se confirman con accesos de solo lectura.</div></div></div>
+        </div></div>
+        <div class="tabpane" id="ci-meta"><div class="panel">
+          <h3>Meta Ads</h3><div class="desc">Biblioteca de anuncios de Meta.</div>
+          <div class="checkrow"><div class="ci bad">&#10005;</div><div><div class="t">Sin anuncios propios activos</div><div class="d">Página verificada, pero sin pauta que amplifique el contenido.</div></div></div>
+          <div class="checkrow"><div class="ci mid">!</div><div><div class="t">Audiencia sin aprovechar</div><div class="d">Tenés ~4.000 seguidores, pero el alcance queda solo en quien ya te sigue.</div></div></div>
+          <div class="checkrow"><div class="ci bad">&#10005;</div><div><div class="t">La competencia ya pauta</div><div class="d">El Competidor B tiene 4 anuncios activos desde febrero, con video y botón a WhatsApp.</div></div></div>
+        </div></div>
+        <div class="tabpane" id="ci-med"><div class="panel">
+          <h3>Medición / tracking</h3><div class="desc">Etiquetas detectadas en el sitio.</div>
+          <div class="checkrow"><div class="ci bad">&#10005;</div><div><div class="t">Sin GA4 ni Google Tag Manager</div><div class="d">No se sabe cuánta gente entra ni dónde abandona.</div></div></div>
+          <div class="checkrow"><div class="ci bad">&#10005;</div><div><div class="t">Sin píxel de Meta</div><div class="d">No se puede volver a impactar a quien miró un emprendimiento y no consultó.</div></div></div>
+          <div class="checkrow"><div class="ci bad">&#10005;</div><div><div class="t">Sin etiquetas de conversión</div><div class="d">Un clic en WhatsApp o un formulario enviado no queda registrado.</div></div></div>
+          <div class="checkrow"><div class="ci mid">!</div><div><div class="t">DMARC en «None»</div><div class="d">Los mails y newsletters salen sin protección de suplantación.</div></div></div>
+        </div></div>
+      </div>
+    </div></section>
+
+    <section class="blk"><div class="cwrap">
+      <span class="kicker">Dónde estás perdiendo consultas</span><h2 style="margin-top:10px">Los 3 puntos de fuga más urgentes</h2>
+      <p class="sub">Encontramos 6 en total. Estos son los tres que más te están costando hoy.</p>
+      <div class="findgrid" style="margin-top:24px">
+        <div class="find"><div class="body"><h3>Google no sabe qué vende cada página</h3><p>Tus obras viven en direcciones sin descripción. Google no las puede mostrar por ciudad ni por estado de obra.</p></div><div class="lose"><b>Qué se pierde</b>Cada búsqueda por zona la capta un portal o una inmobiliaria.</div></div>
+        <div class="find"><div class="body"><h3>El que llega, se va sin dejar el dato</h3><p>El camino de contacto tiene un link roto. La visita interesada no puede consultarte.</p></div><div class="lose"><b>Qué se pierde</b>El lead. Y Google ve que la gente se va rápido y te baja más.</div></div>
+        <div class="find"><div class="body"><h3>Tus obras aparecen bajo otras marcas</h3><p>Los edificios que construiste rankean en portales de terceros, no bajo tu nombre.</p></div><div class="lose"><b>Qué se pierde</b>La autoría digital de tu propio trabajo.</div></div>
+      </div>
+    </div></section>
+
+    <section class="blk"><div class="cwrap">
+      <span class="kicker">Cómo te ves frente a tu competencia</span><h2 style="margin-top:10px">El mapa de tu sector</h2><p class="sub">Contra los 2 competidores directos que verificamos.</p>
+      <div class="tablecard"><table class="comptable"><thead><tr><th>&nbsp;</th><th>Vos</th><th>Competidor A</th><th>Competidor B</th></tr></thead><tbody>
+        <tr><td>Reseñas en Google</td><td class="you" style="color:var(--warn)">0</td><td>16 · 4,4★</td><td>6 · 4,2★</td></tr>
+        <tr><td>Ficha de Google ordenada</td><td class="you"><span class="cross">✕ duplicada</span></td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td></tr>
+        <tr><td>Aparecés en portales con tu marca</td><td class="you"><span class="cross">✕</span></td><td><span class="tick">✓</span></td><td><span class="tick">✓</span></td></tr>
+        <tr><td>Publicidad activa en Meta</td><td class="you"><span class="cross">✕</span></td><td><span class="cross">✕</span></td><td><span class="tick">✓ 4 anuncios</span></td></tr>
+        <tr><td>Medición instalada</td><td class="you"><span class="cross">✕</span></td><td>Sin evidencia</td><td>Sin evidencia</td></tr>
+      </tbody></table></div>
+      <p class="sub" style="margin-top:16px;margin-bottom:0">Nadie tiene todo resuelto. Pero el Competidor B ya empezó, y hoy compra esa demanda casi sin competencia.</p>
+    </div></section>
+
+    <section class="blk" style="border:none"><div class="cwrap">
+      <div class="cta-band"><div class="aura a-cor" style="width:280px;height:280px;top:-80px;right:-40px;opacity:.5"></div>
+        <div style="position:relative;z-index:2"><span class="ast" style="font-size:1.8rem;color:#fff">*</span>
+        <h2 style="margin-top:10px">Encontramos 6 puntos de fuga. Te mostramos cómo se resuelven.</h2>
+        <p>El plan de acción con prioridades, plazos y presupuesto lo armamos juntos en una llamada de 30 minutos. Sin compromiso.</p>
+        <button class="btn white" onclick="alert('Placeholder: agendar llamada con Qualita.')">Agendar llamada con Qualita →</button>
+        <div class="gated">🔒 El plan de acción completo se comparte en la llamada.</div></div>
+      </div>
+      <p class="method">Método: sitio web, Google, biblioteca de anuncios de Meta, ficha de Google Business y redes. Fuentes públicas verificadas · Julio 2026 · datos de ejemplo.</p>
+    </div></section>
+
+    <div class="cfooter"><div class="in"><div class="logo"><svg class="mark" viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg><div class="txt" style="color:#fff">qualita<small style="color:rgba(255,255,255,.5)">STUDIO</small></div></div><div class="links"><span>qualita.studio</span><span>hola@qualita.studio</span></div></div></div>
+  </div>
+</div>
+
+<!-- MODE SWITCH -->
+<div class="modebar">
+  <span class="lab">Vista</span>
+  <button class="active" data-mode="qualita" onclick="setMode('qualita')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Qualita
+  </button>
+  <button data-mode="empresa" onclick="setMode('empresa')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01"/></svg>Empresa
+  </button>
+</div>
+
+<script>
+  /* ---- MODE ---- */
+  function setMode(m){
+    document.getElementById('mode-qualita').classList.toggle('active',m==='qualita');
+    document.getElementById('mode-empresa').classList.toggle('active',m==='empresa');
+    document.querySelectorAll('.modebar button').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+    window.scrollTo(0,0);
+  }
+
+  /* ---- LEADS DATA ---- */
+  const gcolors=['linear-gradient(135deg,#FE6F61,#B50CC5)','linear-gradient(135deg,#B50CC5,#252851)','linear-gradient(135deg,#FE6F61,#252851)','linear-gradient(135deg,#B50CC5,#FE6F61)'];
+  const estadoMap={nuevo:'Nuevo',contactado:'Contactado',conversacion:'En conversación',cliente:'Cliente',descartado:'Descartado'};
+  const leads=[
+    {id:'cs',name:'Constructora del Sur',city:'Bahía Blanca',init:'CS',person:'Marcelo Ciucci',email:'marcelo@constructoradelsur.com',site:'constructoradelsur.com',tipo:'Ambos',rubro:'Desarrollo y construcción',date:'Hoy',score:38,fugas:6,estado:'nuevo',ch:[['Sitio',2],['SEO',2],['Google Ads',1],['Meta Ads',1],['Redes',4],['Medición',1]]},
+    {id:'dn',name:'Distribuidora Norte',city:'Cabildo',init:'DN',person:'Lucía Herrera',email:'lucia@distrinorte.com.ar',site:'distrinorte.com.ar',tipo:'Mayorista / B2B',rubro:'Distribución mayorista',date:'Hoy',score:29,fugas:7,estado:'nuevo',ch:[['Sitio',1],['SEO',2],['Google Ads',1],['Meta Ads',1],['Redes',3],['Medición',1]]},
+    {id:'tp',name:'Talleres Pampa',city:'Punta Alta',init:'TP',person:'Rubén Ávila',email:'info@tallerespampa.com',site:'tallerespampa.com',tipo:'Mayorista / B2B',rubro:'Industria / metalúrgica',date:'Ayer',score:22,fugas:8,estado:'nuevo',ch:[['Sitio',1],['SEO',1],['Google Ads',1],['Meta Ads',1],['Redes',2],['Medición',1]]},
+    {id:'if',name:'Indumentaria Fabril',city:'Bahía Blanca',init:'IF',person:'Sofía Rossi',email:'sofia@indufabril.com',site:'indufabril.com',tipo:'Ambos',rubro:'Indumentaria / textil',date:'Hace 2 días',score:54,fugas:4,estado:'contactado',ch:[['Sitio',3],['SEO',3],['Google Ads',2],['Meta Ads',2],['Redes',4],['Medición',2]]},
+    {id:'gm',name:'Grupo Mediterráneo',city:'Monte Hermoso',init:'GM',person:'Diego Paz',email:'dpaz@grupomediterraneo.ar',site:'grupomediterraneo.ar',tipo:'Minorista',rubro:'Desarrollo y construcción',date:'Hace 3 días',score:67,fugas:3,estado:'conversacion',ch:[['Sitio',4],['SEO',3],['Google Ads',3],['Meta Ads',3],['Redes',4],['Medición',3]]},
+    {id:'av',name:'Agro Valle',city:'Coronel Suárez',init:'AV',person:'Natalia Gómez',email:'natalia@agrovalle.com',site:'agrovalle.com',tipo:'Mayorista / B2B',rubro:'Agroindustria',date:'Hace 5 días',score:49,fugas:5,estado:'contactado',ch:[['Sitio',3],['SEO',2],['Google Ads',2],['Meta Ads',2],['Redes',3],['Medición',2]]},
+    {id:'lb',name:'Lácteos Buratovich',city:'H. Bascuñán',init:'LB',person:'Andrés Molina',email:'ventas@lacteosb.com',site:'lacteosb.com',tipo:'Ambos',rubro:'Alimentos',date:'Hace 1 semana',score:71,fugas:2,estado:'cliente',ch:[['Sitio',4],['SEO',4],['Google Ads',3],['Meta Ads',3],['Redes',4],['Medición',4]]},
+    {id:'mp',name:'Muebles Patagonia',city:'Bahía Blanca',init:'MP',person:'Carla Suárez',email:'hola@mueblespatagonia.com',site:'mueblespatagonia.com',tipo:'Minorista',rubro:'Mobiliario',date:'Hace 1 semana',score:44,fugas:5,estado:'descartado',ch:[['Sitio',2],['SEO',2],['Google Ads',2],['Meta Ads',2],['Redes',3],['Medición',2]]}
+  ];
+  const scoreColor=s=>s<40?'var(--warn)':s<60?'var(--mid)':'var(--ok)';
+
+  function leadRow(l){
+    return `<tr onclick="openLead('${l.id}')">
+      <td><div class="co"><div class="colgo" style="background:${gcolors[l.name.length%4]}">${l.init}</div><div><div style="font-weight:600">${l.name}</div><div class="sub">${l.city}</div></div></div></td>
+      <td><div class="contact"><div class="nm">${l.person}</div><div class="em">${l.email}</div></div></td>
+      <td>${l.rubro}</td><td>${l.date}</td>
+      <td><div class="scoreb"><b style="color:${scoreColor(l.score)}">${l.score}</b><span class="miniprog"><i style="width:${l.score}%"></i></span></div></td>
+      <td><span class="fuga">${l.fugas}</span></td>
+      <td><span class="pill p-${l.estado}"><span class="pd"></span>${estadoMap[l.estado]}</span></td>
+    </tr>`;
+  }
+  function renderLeads(filter='all'){
+    const rows=leads.filter(l=>filter==='all'||l.estado===filter).map(leadRow).join('');
+    document.getElementById('leadRows').innerHTML=rows;
+    // counts
+    document.getElementById('c-all').textContent=leads.length;
+    ['nuevo','contactado','conversacion','cliente'].forEach(e=>document.getElementById('c-'+e).textContent=leads.filter(l=>l.estado===e).length);
+  }
+  function filterLeads(f,el){document.querySelectorAll('#leadFilters .fpill').forEach(b=>b.classList.remove('on'));el.classList.add('on');renderLeads(f);}
+
+  function renderPanelRecent(){
+    const html=leads.filter(l=>l.estado==='nuevo').map(l=>`
+      <div onclick="openLead('${l.id}')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--linea2)">
+        <div class="co"><div class="colgo" style="width:34px;height:34px;background:${gcolors[l.name.length%4]}">${l.init}</div><div><div style="font-weight:600">${l.name}</div><div class="sub">${l.rubro} · ${l.date}</div></div></div>
+        <div class="scoreb"><b style="color:${scoreColor(l.score)}">${l.score}</b></div>
+      </div>`).join('');
+    document.getElementById('panelRecent').innerHTML=html;
+  }
+  function renderAll(){
+    const origins=['Autodiagnóstico','Autodiagnóstico','Autodiagnóstico','Manual','Autodiagnóstico','Manual','Autodiagnóstico','Autodiagnóstico'];
+    document.getElementById('allRows').innerHTML=leads.map((l,i)=>`
+      <tr onclick="openLead('${l.id}')"><td><div class="co"><div class="colgo" style="width:34px;height:34px;background:${gcolors[l.name.length%4]}">${l.init}</div><div style="font-weight:600">${l.name}</div></div></td>
+      <td><span class="pill ${origins[i]==='Manual'?'p-descartado':'p-conversacion'}"><span class="pd"></span>${origins[i]}</span></td>
+      <td>${l.date}</td><td><span class="pill p-${l.estado}"><span class="pd"></span>${estadoMap[l.estado]}</span></td>
+      <td><div class="scoreb"><b style="color:${scoreColor(l.score)}">${l.score}</b><span class="miniprog"><i style="width:${l.score}%"></i></span></div></td></tr>`).join('');
+  }
+
+  /* ---- DRAWER ---- */
+  let currentLead=null;
+  function openLead(id){
+    const l=leads.find(x=>x.id===id);currentLead=l;
+    document.getElementById('drInit').textContent=l.init;
+    document.getElementById('drInit').style.background=gcolors[l.name.length%4];
+    document.getElementById('drName').textContent=l.name;
+    document.getElementById('drSub').textContent=l.rubro+' · '+l.city;
+    document.getElementById('drPerson').textContent=l.person;
+    document.getElementById('drEmail').textContent=l.email;
+    document.getElementById('drSite').textContent=l.site;
+    document.getElementById('drTipo').textContent=l.tipo;
+    document.getElementById('drScore').textContent=l.score+'/100';
+    document.getElementById('drScore').style.color=scoreColor(l.score);
+    document.getElementById('drChannels').innerHTML=l.ch.map(c=>{
+      let dots='';for(let i=0;i<5;i++)dots+=`<i class="${i<c[1]?'f':''}"></i>`;
+      return `<div class="chanmini"><span>${c[0]}</span><span class="dd">${dots}</span></div>`;
+    }).join('');
+    document.querySelectorAll('#drStatus .sopt').forEach(s=>s.classList.toggle('cur',s.textContent===estadoMap[l.estado]));
+    document.getElementById('scrim').classList.add('open');
+    document.getElementById('drawer').classList.add('open');
+  }
+  function closeLead(){document.getElementById('scrim').classList.remove('open');document.getElementById('drawer').classList.remove('open');}
+  function openFull(){
+    if(currentLead){
+      document.getElementById('dInit').textContent=currentLead.init;
+      document.getElementById('dInit').style.background=gcolors[currentLead.name.length%4];
+      document.getElementById('dName').textContent=currentLead.name;
+      document.getElementById('dMeta').textContent=currentLead.rubro+' · '+currentLead.city+' · '+currentLead.date;
+      const est=document.getElementById('dEstado');est.className='pill p-'+currentLead.estado;est.innerHTML=`<span class="pd"></span>${estadoMap[currentLead.estado]}`;
+    }
+    closeLead();qnav('detail');
+  }
+
+  /* ---- QUALITA NAV ---- */
+  const qtitles={panel:'Panel',leads:'Autodiagnósticos',all:'Todos los diagnósticos',detail:'Detalle',new:'Nuevo diagnóstico',competencia:'Competencia',config:'Configuración'};
+  function qnav(id){
+    document.querySelectorAll('#mode-qualita .page').forEach(p=>p.classList.toggle('active',p.id==='q-'+id));
+    document.querySelectorAll('.navitem').forEach(b=>b.classList.toggle('active',b.dataset.q===id));
+    document.getElementById('qTitle').textContent=qtitles[id]||'';
+    window.scrollTo(0,0);
+  }
+  function qtab(el,id){el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');document.querySelectorAll('#q-detail .tabpane').forEach(p=>p.classList.toggle('active',p.id===id));}
+
+  /* ---- EMPRESA ---- */
+  const cviews=['clanding','cform','cloading','cresult'];const tags={clanding:'Es gratis · sin instalar nada',cform:'Es gratis · tarda unos minutos',cloading:'Analizando…',cresult:'Diagnóstico listo'};
+  function cshow(id){cviews.forEach(v=>document.getElementById(v).classList.toggle('active',v===id));document.querySelectorAll('.cprotonav button').forEach(b=>b.classList.toggle('active',b.dataset.c===id));document.getElementById('barTag').textContent=tags[id];window.scrollTo(0,0);if(id==='cloading')runLoading();if(id==='cresult')animateResult();}
+  function animateResult(){
+    animatePane('pt-marca');
+    const num=document.getElementById('scoreNum');
+    const mk=document.getElementById('spMarker');
+    if(mk){mk.style.left='0%';setTimeout(()=>{mk.style.left='38%';},160);}
+    if(num){let v=0;const t=setInterval(()=>{v+=2;if(v>=38){v=38;clearInterval(t);}num.textContent=v;},26);}
+  }
+  function goStep(n){document.querySelectorAll('.fstep').forEach(s=>s.classList.toggle('active',+s.dataset.step===n));['s1','s2','s3'].forEach((id,i)=>document.getElementById(id).classList.toggle('on',i<n));document.getElementById('stepNum').textContent=n;window.scrollTo(0,0);}
+  function startLoading(){goStep(1);cshow('cloading');}
+  function runLoading(){const cks=document.querySelectorAll('#checklist .ck'),cta=document.getElementById('cta2');cks.forEach(c=>c.className='ck');cta.classList.remove('show');let i=0;cks[0].classList.add('active');const t=setInterval(()=>{cks[i].classList.remove('active');cks[i].classList.add('done');i++;if(i<cks.length)cks[i].classList.add('active');else{clearInterval(t);cta.classList.add('show');}},1000);}
+
+  const zonas=['Buenos Aires','Ciudad Autónoma de Buenos Aires','Catamarca','Chaco','Chubut','Córdoba','Corrientes','Entre Ríos','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones','Neuquén','Río Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe','Santiago del Estero','Tierra del Fuego','Tucumán'];
+  function renderZonas(){const inp=document.getElementById('zonaInput');if(!inp)return;const f=inp.value.toLowerCase();const list=document.getElementById('zonaList');const m=zonas.filter(z=>z.toLowerCase().includes(f));list.innerHTML=m.length?m.map(z=>`<div class="combo-opt" onclick="selectZona(this)">${z}</div>`).join(''):'<div class="combo-opt empty">Sin resultados</div>';}
+  function openZonas(){renderZonas();document.getElementById('zonaList').classList.add('open');}
+  function selectZona(el){document.getElementById('zonaInput').value=el.textContent;document.getElementById('zonaList').classList.remove('open');}
+  function animatePane(id){const r=document.querySelector('#'+id+' .ph-prog');if(!r)return;const t=r.getAttribute('data-off');r.style.strokeDashoffset='251.3';setTimeout(()=>{r.style.strokeDashoffset=t;},60);}
+  function ptab(el,id){document.querySelectorAll('.bigtab').forEach(b=>b.classList.remove('active'));el.classList.add('active');document.querySelectorAll('.ptpane').forEach(p=>p.classList.toggle('active',p.id===id));animatePane(id);window.scrollTo({top:document.querySelector('.bigtabs').getBoundingClientRect().top+window.scrollY-90,behavior:'smooth'});}
+  function ctab(el,id){el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');document.querySelectorAll('#pt-infra .tabpane').forEach(p=>p.classList.toggle('active',p.id===id));}
+  document.addEventListener('click',e=>{const l=document.getElementById('zonaList');if(l&&!e.target.closest('.combo'))l.classList.remove('open');});
+
+  /* init */
+  renderLeads();renderPanelRecent();renderAll();
+  (function(){const z=document.getElementById('zonaInput');if(z){z.value='Buenos Aires';renderZonas();}})();
+</script>
+</body>
+</html>

@@ -1,26 +1,104 @@
 @import "tailwindcss";
 
+/* Tokens de marca — Qualita Studio.
+   Valores exactos del manual de marca; no aproximar.
+   Fuente visual: design/qualita-boceto.html */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Paleta */
+  --navy: #252851;
+  --magenta: #B50CC5;
+  --coral: #FE6F61;
+  --blanco: #ffffff;
+  --crema: #FFF4EC;
+  --dark: #111327;
+  --sidebar: #191b32;
+
+  /* Grises de UI */
+  --bg: #f5f5fb;
+  --card: #ffffff;
+  --linea: #eaeaf2;
+  --linea2: #f2f2f7;
+  --tinta: #6b6d86;
+  --tinta2: #a0a2b6;
+
+  /* Estados semánticos, cada uno con su fondo suave */
+  --ok: #1f9d63;
+  --okbg: #e6f7ee;
+  --warn: #e0492f;
+  --warnbg: #fdeae6;
+  --mid: #b57400;
+  --midbg: #fdf4e3;
+  --info: #4a54c4;
+  --infobg: #eceeff;
+
+  /* Gradientes */
+  --grad: linear-gradient(100deg, var(--coral), var(--magenta));
+  --grad-mv: linear-gradient(125deg, var(--magenta), var(--navy));
+  --grad-soft: linear-gradient(120deg, #fff0f3, #f6eafd);
+
+  /* Elevación y radio */
+  --sh: 0 1px 2px rgba(37, 40, 81, .04), 0 6px 18px rgba(37, 40, 81, .05);
+  --sh-lg: 0 12px 40px rgba(37, 40, 81, .12);
+  --r: 16px;
 }
 
+/* Puente hacia Tailwind: habilita bg-navy, text-tinta, border-linea, etc. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-navy: var(--navy);
+  --color-magenta: var(--magenta);
+  --color-coral: var(--coral);
+  --color-crema: var(--crema);
+  --color-dark: var(--dark);
+  --color-sidebar: var(--sidebar);
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-linea: var(--linea);
+  --color-linea2: var(--linea2);
+  --color-tinta: var(--tinta);
+  --color-tinta2: var(--tinta2);
+  --color-ok: var(--ok);
+  --color-okbg: var(--okbg);
+  --color-warn: var(--warn);
+  --color-warnbg: var(--warnbg);
+  --color-mid: var(--mid);
+  --color-midbg: var(--midbg);
+  --color-info: var(--info);
+  --color-infobg: var(--infobg);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
+  --font-display: var(--font-unbounded), sans-serif;
+
+  --shadow-qualita: 0 1px 2px rgba(37, 40, 81, .04), 0 6px 18px rgba(37, 40, 81, .05);
+  --shadow-qualita-lg: 0 12px 40px rgba(37, 40, 81, .12);
+
+  --radius-card: 16px;
+  --radius-campo: 12px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--navy);
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Los títulos van en Unbounded, con el tracking cerrado del manual. */
+h1, h2, h3, .disp {
+  font-family: var(--font-unbounded), sans-serif;
+  letter-spacing: -.015em;
+  line-height: 1.1;
+}
+
+::selection {
+  background: rgba(181, 12, 197, .15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
 }
