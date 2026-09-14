@@ -20,13 +20,13 @@ export default function Landing() {
           <Kicker>Autodiagnóstico digital · gratis</Kicker>
 
           <h1 className="font-display mt-[18px] max-w-[16ch] text-[clamp(2.1rem,5vw,3.4rem)] leading-[1.03] font-bold">
-            Descubrí cómo se ve tu empresa online
+            ¿Dónde se te escapan las consultas?
           </h1>
 
           <p className="mt-4 max-w-[52ch] text-[1.05rem] text-white/75">
-            Revisamos tu sitio, cómo aparecés en Google y si estás midiendo lo que
-            pasa. Te devolvemos un informe claro, con lo que está bien y lo que te
-            está costando consultas.
+            Revisamos tu sitio, las formas de contactarte, lo que Google lee de tu
+            página y si estás midiendo lo que pasa. Te devolvemos un informe claro,
+            con lo que está bien y lo que te está costando consultas.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -108,7 +108,7 @@ const PASOS = [
   {
     titulo: "Analizamos",
     texto:
-      "Tu sitio, cómo aparecés en Google y si tenés medición andando.",
+      "Tu sitio, sus vías de contacto, lo que lee Google y si tenés medición andando.",
   },
   {
     titulo: "Recibís tu informe",

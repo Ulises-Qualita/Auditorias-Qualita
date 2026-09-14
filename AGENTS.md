@@ -123,10 +123,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
-
-## Referencia de calidad del análisis
-`docs/ejemplo-auditoria-audifarm.pdf` es una auditoría REAL hecha a mano por Qualita, al nivel que el output automático debe alcanzar. 
-- Es el ESTÁNDAR de calidad y tono (voz al cliente, hallazgos concretos atados a evidencia, honestidad sobre lo no verificable), NO un template ni datos para reusar.
-- NUNCA copiar su contenido, cifras, competidores ni frases a otros diagnósticos: cada informe sale solo de los facts de ESA empresa.
-- Sirve para calibrar el prompt (lib/analysis/prompt.ts) y, a futuro, el diseño del render.
 <!-- END:nextjs-agent-rules -->

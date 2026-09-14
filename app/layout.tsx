@@ -21,7 +21,7 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "Autodiagnóstico Digital — Qualita Studio",
   description:
-    "Descubrí cómo se ve tu empresa online: un diagnóstico de tu presencia digital hecho sobre información pública verificable.",
+    "¿Dónde se te escapan las consultas? Un diagnóstico gratuito de tu sitio, hecho sobre información pública verificable.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
