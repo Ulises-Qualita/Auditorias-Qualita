@@ -2,6 +2,8 @@ import Image from "next/image";
 
 import type { Fuga } from "@/lib/diagnostico/results";
 
+import { WHATSAPP_QUALITA } from "../../_components/contacto";
+
 /** Cierre del informe: puntos de fuga, lo que queda a validar, el CTA gateado
  *  y el footer. Todo estático, así que va en servidor. */
 
@@ -9,29 +11,42 @@ export function Fugas({ fugas }: { fugas: Fuga[] }) {
   if (fugas.length === 0) return null;
 
   return (
-    <section className="border-b border-linea px-[clamp(18px,5vw,32px)] py-[46px]">
+    <section className="border-b border-linea px-[clamp(18px,5vw,32px)] py-[clamp(38px,6vw,54px)]">
       <div className="mx-auto w-full max-w-[940px]">
         <Kicker>Dónde estás perdiendo consultas</Kicker>
-        <h2 className="mt-3 text-[1.35rem] font-semibold">
+        <h2 className="mt-3 text-[clamp(1.25rem,2.6vw,1.5rem)] font-semibold text-navy">
           {fugas.length === 1
             ? "El punto de fuga más urgente"
             : `Los ${fugas.length} puntos de fuga más urgentes`}
         </h2>
-        <p className="mt-1.5 max-w-[52ch] text-tinta">
+        <p className="mt-2 max-w-[54ch] text-[0.94rem] text-tinta">
           Lo que hoy corta el camino entre alguien interesado y una consulta tuya.
         </p>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
+        {/* Cada tarjeta es el título arriba y el bloque oscuro abajo, como la
+            lámina del ejemplo. `items-stretch` + `flex-1` en la cabecera
+            mantienen los bloques oscuros alineados entre sí aunque los títulos
+            tengan distinto largo. */}
+        <div className="mt-7 grid items-stretch gap-4 md:grid-cols-3">
           {fugas.map((fuga, i) => (
             <article
               key={`${fuga.titulo}-${i}`}
-              className="flex flex-col overflow-hidden rounded-[14px] border border-linea bg-white shadow-qualita"
+              className="flex min-w-0 flex-col overflow-hidden rounded-card border border-linea bg-white shadow-qualita"
             >
-              <div className="flex-1 p-5">
-                <h3 className="text-[1rem]">{fuga.titulo}</h3>
+              <div className="flex flex-1 flex-col p-5">
+                <span
+                  aria-hidden="true"
+                  className="font-display text-[0.95rem] leading-none font-bold text-coral"
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <h3 className="mt-3 text-[1.02rem] leading-[1.3] font-semibold text-balance text-navy">
+                  {fuga.titulo}
+                </h3>
               </div>
-              <div className="bg-navy px-5 py-3.5 text-[0.84rem] text-white">
-                <b className="mb-1 block text-[0.66rem] tracking-[0.12em] text-coral uppercase">
+
+              <div className="bg-navy px-5 py-4 text-[0.84rem] leading-[1.5] text-white/85">
+                <b className="mb-1.5 block text-[0.64rem] font-bold tracking-[0.14em] text-coral uppercase">
                   Qué se pierde
                 </b>
                 {fuga.que_se_pierde}
@@ -81,10 +96,12 @@ export function AValidar({ items }: { items: string[] }) {
 
 export function CtaQualita({ cantidadFugas }: { cantidadFugas: number }) {
   return (
-    <section className="px-[clamp(18px,5vw,32px)] py-[46px]">
-      <div className="mx-auto w-full max-w-[940px]">
+    // Sigue al mazo sobre el mismo gris y con su mismo margen lateral, así el
+    // bloque queda alineado con el borde de las láminas.
+    <section className="bg-[#e7e7ee] px-[clamp(10px,3vw,32px)] pb-[clamp(28px,5vw,56px)]">
+      <div className="mx-auto w-full max-w-(--ancho-informe)">
         <div
-          className="relative overflow-hidden rounded-[22px] p-[clamp(28px,5vw,46px)] text-white"
+          className="relative overflow-hidden rounded-[22px] p-[clamp(28px,4.4vw,58px)] text-white"
           style={{ background: "var(--grad-mv)" }}
         >
           <div
@@ -110,10 +127,12 @@ export function CtaQualita({ cantidadFugas }: { cantidadFugas: number }) {
             </p>
 
             <a
-              href="mailto:hola@qualita.studio?subject=Quiero%20ver%20mi%20plan%20de%20acci%C3%B3n"
+              href={WHATSAPP_QUALITA}
+              target="_blank"
+              rel="noopener noreferrer"
               className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-[0.92rem] font-bold text-navy transition-transform hover:-translate-y-px"
             >
-              Agendar llamada con Qualita →
+              Hablar con Qualita por WhatsApp →
             </a>
 
             <p className="mt-[18px] flex items-center gap-2 text-[0.85rem] text-white/70">
@@ -142,14 +161,14 @@ export function CtaQualita({ cantidadFugas }: { cantidadFugas: number }) {
 export function PieInforme({ fecha }: { fecha: string }) {
   return (
     <>
-      <p className="mx-auto max-w-[940px] px-[clamp(18px,5vw,32px)] pb-7 text-center text-[0.83rem] text-tinta">
+      <p className="mx-auto max-w-(--ancho-informe) px-[clamp(18px,5vw,32px)] py-7 text-center text-[0.83rem] text-tinta">
         Método: chequeos automáticos sobre tu sitio (contenido, SEO on-page, etiquetas
         de medición y DMARC) e interpretación por el equipo de Qualita. Fuentes
         públicas verificadas{fecha && ` · ${fecha}`}.
       </p>
 
       <footer className="bg-dark px-[clamp(18px,5vw,32px)] py-10 text-white">
-        <div className="mx-auto flex w-full max-w-[940px] flex-wrap items-center justify-between gap-4">
+        <div className="mx-auto flex w-full max-w-(--ancho-informe) flex-wrap items-center justify-between gap-4">
           <Image
             src="/qualita-logo-blanco.svg"
             alt="Qualita Studio"

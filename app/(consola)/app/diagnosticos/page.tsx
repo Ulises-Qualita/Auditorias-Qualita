@@ -10,6 +10,7 @@ import {
 } from "@/lib/consola/leads";
 import { contarLeads, listarDiagnosticos } from "@/lib/consola/queries";
 import { FaviconEmpresa } from "../_components/FaviconEmpresa";
+import { EliminarFila } from "./[id]/EliminarFila";
 import {
   BarraScore,
   CabeceraPagina,
@@ -85,20 +86,26 @@ export default async function DiagnosticosPage({ searchParams }: PageProps<"/app
                     </th>
                   ),
                 )}
+                <th scope="col" className="border-b border-linea bg-bg px-4 py-3.5">
+                  <span className="sr-only">Acciones</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {filas.map((fila) => {
                 const nombre = fila.empresa?.name ?? "Empresa sin nombre";
                 return (
-                  <tr key={fila.id} className="border-b border-linea2 last:border-none hover:bg-[#faf9fe]">
+                  <tr
+                    key={fila.id}
+                    className="relative cursor-pointer border-b border-linea2 last:border-none hover:bg-[#faf9fe]"
+                  >
                     <td className="px-4 py-3.5">
-                      {/* El link va en la celda de empresa y no en el <tr>: una fila
-                          clickeable no es navegable con teclado ni se puede abrir
-                          en pestaña nueva. */}
+                      {/* Un <a> real y no un onClick en el <tr>, para que se pueda
+                          navegar con teclado y abrir en pestaña nueva. El ::after
+                          lo estira sobre toda la fila; el mailto va por encima. */}
                       <Link
                         href={`/app/diagnosticos/${fila.id}`}
-                        className="flex items-center gap-3"
+                        className="flex items-center gap-3 after:absolute after:inset-0"
                       >
                         <FaviconEmpresa website={fila.empresa?.website ?? null} nombre={nombre} />
                         <span>
@@ -118,7 +125,7 @@ export default async function DiagnosticosPage({ searchParams }: PageProps<"/app
                       {fila.empresa?.contact_email ? (
                         <a
                           href={`mailto:${fila.empresa.contact_email}`}
-                          className="block text-[0.78rem] text-tinta2 hover:text-magenta"
+                          className="relative z-10 block text-[0.78rem] text-tinta2 hover:text-magenta"
                         >
                           {fila.empresa.contact_email}
                         </a>
@@ -138,6 +145,9 @@ export default async function DiagnosticosPage({ searchParams }: PageProps<"/app
                     </td>
                     <td className="px-4 py-3.5">
                       <PillLead estado={fila.lead_status} />
+                    </td>
+                    <td className="px-2 py-3.5 text-right">
+                      <EliminarFila diagnosticId={fila.id} nombre={nombre} />
                     </td>
                   </tr>
                 );

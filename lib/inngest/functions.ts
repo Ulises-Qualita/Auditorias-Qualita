@@ -1,5 +1,7 @@
 import { NonRetriableError } from "inngest";
-import { runAnalysis } from "@/lib/analysis/analyze";
+import { medirVelocidad, runAnalysis } from "@/lib/analysis/analyze";
+import type { PageSpeedFacts } from "@/lib/analysis/collectors/pageSpeed";
+import { enviarInformeListo, ErrorMailTransitorio } from "@/lib/email/informeListo";
 import { diagnosticRequested, inngest } from "./client";
 
 /** Cuántos análisis corren a la vez. El techo real es el costo de la API de
@@ -35,9 +37,18 @@ export const runAnalysisFn = inngest.createFunction(
     const { diagnosticId } = event.data;
     const ultimoIntento = attempt >= REINTENTOS;
 
+    // PageSpeed va primero y aparte: tarda ~50 s y en su propio step tiene su
+    // propio presupuesto de duración. Nunca tira, así que se memoriza en la
+    // primera corrida y los reintentos de "analyze" no lo vuelven a medir.
+    // (El step devuelve JSON: el tipo se reafirma porque Inngest lo serializa.)
+    const velocidad = (await step.run("pagespeed", () =>
+      medirVelocidad(diagnosticId),
+    )) as PageSpeedFacts | null;
+
     const resultado = await step.run("analyze", async () => {
       const salida = await runAnalysis(diagnosticId, {
         marcarFalloTransitorio: ultimoIntento,
+        pageSpeed: velocidad ?? undefined,
       });
 
       if (salida.ok) return salida;
@@ -51,7 +62,21 @@ export const runAnalysisFn = inngest.createFunction(
       throw new Error(salida.error);
     });
 
-    return { diagnosticId, scores: resultado.scores };
+    // El mail con el link, en su propio step: si Resend falla se reintenta
+    // solo esto (el análisis ya quedó memorizado). Un fallo permanente —dominio
+    // sin verificar, diagnóstico interno sin email— no tira: vuelve como
+    // `enviado: false` y se ve en el dashboard de Inngest.
+    const mail = await step.run("email", async () => {
+      try {
+        return await enviarInformeListo(diagnosticId);
+      } catch (error) {
+        if (error instanceof ErrorMailTransitorio) throw error;
+        const detalle = error instanceof Error ? error.message : "error desconocido";
+        throw new NonRetriableError(`No se pudo enviar el mail: ${detalle}`);
+      }
+    });
+
+    return { diagnosticId, scores: resultado.scores, mail };
   },
 );
 

@@ -39,7 +39,7 @@ const TITULOS: Record<Paso, { titulo: string; bajada: string }> = {
   1: {
     titulo: "Empecemos por tu empresa",
     bajada:
-      "Con esto ubicamos tu mercado y a tu competencia directa. Te lleva menos de dos minutos.",
+      "Con esto entendemos a qué te dedicás y a quién le vendés. Te lleva menos de dos minutos.",
   },
   2: {
     titulo: "¿Cómo te contactamos?",
@@ -308,7 +308,9 @@ export default function FormDiagnostico() {
 
             {errorEnvio && <AvisoError error={errorEnvio} />}
 
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <AvisoPrivacidad />
+
+            <div className="mt-6 flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={() => irAPaso(1)}
@@ -348,6 +350,64 @@ export default function FormDiagnostico() {
 }
 
 /* ---------- piezas de UI ---------- */
+
+/** Aviso de privacidad (Ley 25.326, art. 6: informar para qué se piden los
+ *  datos, quién los guarda y cómo ejercer los derechos). Va justo antes del
+ *  envío, que es cuando se entregan el nombre y el email.
+ *
+ *  Todo lo que dice tiene que seguir siendo cierto: a Claude le llegan los
+ *  datos de la EMPRESA y los hechos del sitio (lib/analysis/prompt.ts), nunca
+ *  el nombre ni el email del contacto; el email solo sale hacia el proveedor
+ *  de mails para mandar el informe. Si eso cambia, este texto cambia. */
+function AvisoPrivacidad() {
+  return (
+    <div className="mt-6 text-[0.8rem] leading-relaxed text-tinta2">
+      <p>
+        Al generar el diagnóstico aceptás que Qualita Studio use tu nombre y tu email para
+        mandarte el informe y contactarte sobre él. No los compartimos con terceros para otros
+        fines.
+      </p>
+      <details className="group mt-1.5">
+        <summary className="cursor-pointer font-semibold text-navy underline underline-offset-2 marker:content-none hover:text-magenta">
+          Cómo usamos tus datos
+        </summary>
+        <div className="mt-2 space-y-2 rounded-[11px] border border-linea bg-bg p-3.5">
+          <p>
+            <b className="font-semibold text-navy">Quién es responsable:</b> Qualita Studio, que
+            guarda los datos que cargás en este formulario.
+          </p>
+          <p>
+            <b className="font-semibold text-navy">Para qué:</b> generar el diagnóstico de tu
+            sitio, mandarte el link al informe y, si corresponde, contactarte para repasarlo.
+          </p>
+          <p>
+            <b className="font-semibold text-navy">Con quién se procesan:</b> los datos de la
+            empresa y de su sitio pasan por las herramientas con las que hacemos el análisis. Tu
+            nombre y tu email se guardan en nuestra base de datos y el email se usa solo para
+            enviarte el informe. No los vendemos ni los cedemos.
+          </p>
+          <p>
+            <b className="font-semibold text-navy">Tus derechos:</b> podés pedir ver, corregir o
+            borrar tus datos escribiendo a{" "}
+            <a href="mailto:hola@qualita.studio" className="font-semibold text-navy underline underline-offset-2">
+              hola@qualita.studio
+            </a>
+            .
+          </p>
+          <p>
+            El titular de los datos personales tiene la facultad de ejercer el derecho de acceso a
+            los mismos en forma gratuita a intervalos no inferiores a seis meses, salvo que se
+            acredite un interés legítimo al efecto, conforme lo establecido en el artículo 14,
+            inciso 3 de la Ley N° 25.326. La Agencia de Acceso a la Información Pública, en su
+            carácter de Órgano de Control de la Ley N° 25.326, tiene la atribución de atender las
+            denuncias y reclamos que interpongan quienes resulten afectados en sus derechos por
+            incumplimiento de las normas vigentes en materia de protección de datos personales.
+          </p>
+        </div>
+      </details>
+    </div>
+  );
+}
 
 function Kicker({ children }: { children: React.ReactNode }) {
   return (

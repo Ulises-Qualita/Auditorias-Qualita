@@ -5,9 +5,9 @@ import Link from "next/link";
  *  El route group `(cliente)` no agrega segmento a la URL. */
 export default function ClienteLayout({ children }: LayoutProps<"/">) {
   return (
-    <div className="flex min-h-full flex-1 flex-col">
+    <div className="shell-cliente flex min-h-full flex-1 flex-col">
       <header className="sticky top-0 z-50 border-b border-linea bg-white/85 backdrop-blur-md">
-        <div className="mx-auto flex h-16 w-full max-w-[940px] items-center justify-between px-[clamp(18px,5vw,32px)]">
+        <div className="barra-cliente mx-auto flex h-16 w-full max-w-[940px] items-center justify-between px-[clamp(18px,5vw,32px)]">
           <Link href="/" className="flex items-center">
             <Image
               src="/qualita-logo-navy.svg"

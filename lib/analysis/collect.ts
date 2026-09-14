@@ -2,10 +2,12 @@ import "server-only";
 
 import { fetchSite, type FetchSiteResult } from "./collectors/fetchSite";
 import { parseSeo, type SeoFacts } from "./collectors/parseSeo";
-import { detectTracking, type TrackingFacts } from "./collectors/detectTracking";
+import { detectTracking, sumarGtm, type TrackingFacts } from "./collectors/detectTracking";
+import { inspectGtm } from "./collectors/inspectGtm";
 import { detectTech, type TechFacts } from "./collectors/detectTech";
+import { detectContacto, type ContactoFacts } from "./collectors/detectContacto";
 import { checkDmarc, normalizarDominio, type DmarcFacts } from "./collectors/checkDmarc";
-import { pageSpeed, type PageSpeedFacts } from "./collectors/pageSpeed";
+import { pageSpeed, sinMedicion, type PageSpeedFacts } from "./collectors/pageSpeed";
 
 /** Recolección determinista de hechos del sitio.
  *
@@ -18,7 +20,11 @@ import { pageSpeed, type PageSpeedFacts } from "./collectors/pageSpeed";
 
 /** Versión de la recolección. Subirla cuando cambie QUÉ se recolecta o CÓMO
  *  se decide un campo, para que `method_version` en la DB siga siendo honesto. */
-export const COLLECT_VERSION = "collect-1.0.0";
+/** 1.4.0: PageSpeed activo (timeout 45 s + reintento) y datos de visitantes
+ *  reales de CrUX en `pageSpeed.crux`.
+ *  1.5.0: PageSpeed con las 4 categorías de Lighthouse (`puntajes`) y las
+ *  auditorías que fallan (`mejoras`). */
+export const COLLECT_VERSION = "collect-1.5.0";
 
 /** Lo mínimo que necesita el recolector. Coincide con `companies`. */
 export type CompanyInput = {
@@ -42,6 +48,8 @@ export type SiteFacts = {
   seo: SeoFacts | null;
   tracking: TrackingFacts | null;
   tech: TechFacts | null;
+  /** Vías de contacto de la HOME (no de todo el sitio: solo bajamos esa). */
+  contacto: ContactoFacts | null;
   dmarc: DmarcFacts | null;
   pageSpeed: PageSpeedFacts;
 
@@ -50,7 +58,16 @@ export type SiteFacts = {
   warnings: string[];
 };
 
-export async function collect(company: CompanyInput): Promise<SiteFacts> {
+export type CollectOptions = {
+  /** Medición de PageSpeed ya hecha. La función de Inngest la corre en su
+   *  propio step (tarda ~50 s) y la pasa acá; sin ella, se mide ahora. */
+  pageSpeed?: PageSpeedFacts;
+};
+
+export async function collect(
+  company: CompanyInput,
+  opciones: CollectOptions = {},
+): Promise<SiteFacts> {
   const warnings: string[] = [];
   const collectedAt = new Date().toISOString();
   const inputUrl = normalizarEntrada(company.website);
@@ -80,17 +97,9 @@ export async function collect(company: CompanyInput): Promise<SiteFacts> {
       seo: null,
       tracking: null,
       tech: null,
+      contacto: null,
       dmarc: null,
-      pageSpeed: {
-        disponible: false,
-        strategy: "mobile",
-        performance: null,
-        lcpMs: null,
-        cls: null,
-        tbtMs: null,
-        medidoEn: null,
-        motivo: "Sin sitio web para medir",
-      },
+      pageSpeed: sinMedicion("Sin sitio web para medir"),
       warnings,
     };
   }
@@ -102,7 +111,7 @@ export async function collect(company: CompanyInput): Promise<SiteFacts> {
   const [resultadoFetch, dmarcEntrada, velocidad] = await Promise.all([
     fetchSite(inputUrl),
     dominioEntrada ? checkDmarc(dominioEntrada) : Promise.resolve(null),
-    pageSpeed(inputUrl),
+    opciones.pageSpeed ?? pageSpeed(inputUrl),
   ]);
 
   const finalUrl = resultadoFetch.finalUrl ?? inputUrl;
@@ -118,20 +127,34 @@ export async function collect(company: CompanyInput): Promise<SiteFacts> {
   let seo: SeoFacts | null = null;
   let tracking: TrackingFacts | null = null;
   let tech: TechFacts | null = null;
+  let contacto: ContactoFacts | null = null;
 
   if (resultadoFetch.ok && resultadoFetch.html) {
     const html = resultadoFetch.html;
     seo = ejecutar(() => parseSeo(html, finalUrl), "SEO on-page", warnings);
     tracking = ejecutar(() => detectTracking(html), "medición", warnings);
     tech = ejecutar(() => detectTech(html), "tecnología del sitio", warnings);
+    contacto = ejecutar(() => detectContacto(html), "vías de contacto", warnings);
   } else {
     warnings.push(
       `No se pudo analizar el sitio ${inputUrl}: ${resultadoFetch.error ?? "motivo desconocido"}. ` +
-        "Todo lo relativo a sitio, SEO on-page y medición queda a validar.",
+        "Todo lo relativo a sitio, vías de contacto, SEO on-page y medición queda a validar.",
     );
   }
 
+  // Lo que carga Tag Manager no está en el HTML: se lee el contenedor público.
+  if (tracking?.gtm) {
+    const contenedores = await inspectGtm(tracking.ids.filter((id) => id.startsWith("GTM-")));
+    tracking = sumarGtm(tracking, contenedores);
+    if (contenedores.some((c) => !c.leido)) {
+      warnings.push(
+        "Tag Manager: no se pudo leer el contenedor, así que lo que carga adentro (analítica, píxel, conversiones) queda a validar.",
+      );
+    }
+  }
+
   agregarWarningsDmarc(dmarc, domain, warnings);
+  agregarWarningsContacto(contacto, warnings);
 
   if (!velocidad.disponible && velocidad.motivo) {
     // Los warnings se muestran al cliente en el informe ("a validar"), así que
@@ -163,6 +186,7 @@ export async function collect(company: CompanyInput): Promise<SiteFacts> {
     seo,
     tracking,
     tech,
+    contacto,
     dmarc,
     pageSpeed: velocidad,
     warnings,
@@ -201,9 +225,52 @@ function agregarWarningsDmarc(
   }
 }
 
+const NOMBRE_VIA: Record<keyof ContactoFacts["estados"], string> = {
+  telefono: "teléfono para tocar",
+  mail: "mail publicado",
+  whatsapp: "WhatsApp",
+  formulario: "formulario",
+};
+
+/** Las vías de contacto se tratan como el tracking: lo que no vimos en el HTML
+ *  inicial no es ausencia. El motivo técnico crudo queda en `contacto.motivo`
+ *  para la consola; acá va la versión legible, que llega al informe. */
+function agregarWarningsContacto(contacto: ContactoFacts | null, warnings: string[]): void {
+  // null ya tiene su warning (el fetch falló o el recolector se cayó).
+  if (!contacto) return;
+
+  if (contacto.estado === "no_verificable") {
+    warnings.push(
+      "Vías de contacto: no se pudieron verificar en la home (el contenido se arma con JavaScript). A confirmar.",
+    );
+    return;
+  }
+  if (contacto.estado === "no_detectado_html_inicial") {
+    warnings.push(
+      "Vías de contacto: no detectadas en el HTML inicial de la home; pueden cargar por JavaScript. A confirmar.",
+    );
+    return;
+  }
+
+  const faltantes = (Object.keys(contacto.estados) as Array<keyof ContactoFacts["estados"]>)
+    .filter((via) => contacto.estados[via] !== "detectado")
+    .map((via) => NOMBRE_VIA[via]);
+  if (faltantes.length === 0) return;
+
+  const lista =
+    faltantes.length === 1
+      ? faltantes[0]
+      : `${faltantes.slice(0, -1).join(", ")} y ${faltantes[faltantes.length - 1]}`;
+  const plural = faltantes.length > 1;
+  warnings.push(
+    `${lista.charAt(0).toUpperCase()}${lista.slice(1)}: no ${plural ? "detectados" : "detectado"} ` +
+      `en el HTML inicial de la home; ${plural ? "pueden" : "puede"} cargar por JavaScript. A confirmar.`,
+  );
+}
+
 /** Acepta lo que haya cargado la empresa y lo convierte en URL absoluta.
  *  Devuelve null si no hay nada usable; nunca inventa un dominio. */
-function normalizarEntrada(website: string | null | undefined): string | null {
+export function normalizarEntrada(website: string | null | undefined): string | null {
   const texto = website?.trim();
   if (!texto) return null;
 

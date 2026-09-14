@@ -17,15 +17,19 @@ import { analysisOutput, estadoCanal } from "@/lib/analysis/schema";
 export const diagnosticResults = analysisOutput.extend({
   analysis_source: z.enum(["mock", "claude"]).optional(),
   a_validar: z.array(z.string()).optional().default([]),
+  // Informes viejos (v1, dos pilares) traen esto. Se acepta para que sigan
+  // parseando, pero no se muestra ni se vuelve a escribir.
   pilar_marca: z.object({ estado: z.literal("a_validar") }).optional(),
 });
 
 export type DiagnosticResults = z.infer<typeof diagnosticResults>;
 export type EstadoCanal = z.infer<typeof estadoCanal>;
-export type CanalInfra = DiagnosticResults["infra"]["sitio"];
-export type CanalAValidar = DiagnosticResults["infra"]["google_ads"];
-export type Check = CanalInfra["checks"][number];
+export type CanalInforme = DiagnosticResults["canales"]["sitio"];
+export type Check = CanalInforme["checks"][number];
 export type Fuga = DiagnosticResults["fugas"][number];
+export type NumeroDestacado = DiagnosticResults["activos"][number];
+export type PasoRecorrido = DiagnosticResults["recorrido"][number];
+export type PasoPlan = DiagnosticResults["plan"][number];
 
 /** Devuelve null en vez de tirar: un results viejo o corrupto degrada a la
  *  pantalla sobria de error, no a un 500 en la cara del cliente. */
@@ -82,6 +86,18 @@ export const ETIQUETA_ESTADO: Record<EstadoCanal, { label: string; clase: string
   fallas_criticas: { label: "Fallas críticas", clase: "bg-warnbg text-warn" },
   a_validar: { label: "A validar", clase: "bg-infobg text-info" },
 };
+
+/** Fecha completa para la portada del informe ("11 de septiembre de 2026"). */
+export function fechaLarga(iso: string): string {
+  const fecha = new Date(iso);
+  if (Number.isNaN(fecha.getTime())) return "";
+  return fecha.toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
+}
 
 /** Fecha del informe, en el formato del mockup ("Julio 2026"). */
 export function mesYAnio(iso: string): string {

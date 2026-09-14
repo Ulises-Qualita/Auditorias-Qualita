@@ -2,8 +2,11 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { collect, COLLECT_VERSION, type SiteFacts } from "./collect";
+import { collect, COLLECT_VERSION, normalizarEntrada, type SiteFacts } from "./collect";
+import { pageSpeed, sinMedicion, type PageSpeedFacts } from "./collectors/pageSpeed";
+import { acumularUso, usoInicial, type UsoAnalisis } from "./costo";
 import { buildMockOutput, MOCK_ANALYSIS_VERSION } from "./mock";
+import { modeloDeAnalisis } from "./modelo";
 import { SYSTEM_PROMPT, buildUserMessage, type CompanyForAnalysis } from "./prompt";
 import { analysisOutput, type AnalysisOutput } from "./schema";
 import { computeScores } from "./score";
@@ -11,7 +14,14 @@ import { computeScores } from "./score";
 /** Interpretación de los facts con Claude. Corre en servidor (Node): usa la
  *  secret key de Supabase y la ANTHROPIC_API_KEY, que nunca van al browser. */
 
-export const ANALYSIS_VERSION = "analysis-1.0.0";
+/** 1.4.0: rúbrica de madurez por canal con condiciones sobre los facts. Antes
+ *  solo se anclaban 1, 3 y 5, y el mismo sitio con facts idénticos salía con
+ *  3 o 4 en "sitio" según la corrida (5 puntos de score).
+ *  1.5.0: la velocidad en celular (PageSpeed, con CrUX si hay) entra al
+ *  informe como check de "sitio" y pone tope 3 si es mala.
+ *  1.6.0: PageSpeed tiene lámina propia (4 puntajes + mejoras, armada por
+ *  código); el modelo ya no hace el check de velocidad para no repetirla. */
+export const ANALYSIS_VERSION = "analysis-1.6.0";
 
 /** Queda guardado en `diagnostics.method_version`: dice con qué recolección y
  *  con qué prompt se generó este informe. Sin esto, un informe viejo no se
@@ -26,14 +36,18 @@ export type AnalysisMode = "mock" | "live";
 
 /** Default deliberado: `mock`. Sin ANALYSIS_MODE seteada nadie gasta la API
  *  key por accidente; para pegarle a Claude hay que pedirlo explícitamente. */
-function analysisMode(): AnalysisMode {
+export function analysisMode(): AnalysisMode {
   return process.env.ANALYSIS_MODE?.trim().toLowerCase() === "live" ? "live" : "mock";
 }
 
 /** El techo de salida tiene que dejar lugar al thinking, que en Sonnet 5 está
  *  activo por defecto y consume del mismo presupuesto. Con 2000 el JSON se
- *  cortaba a la mitad y el parseo fallaba por truncamiento, no por formato. */
-const MAX_TOKENS = 8000;
+ *  cortaba a la mitad y el parseo fallaba por truncamiento, no por formato.
+ *
+ *  Subido a 16000 cuando el informe pasó a la estructura de la auditoría: el
+ *  JSON creció (tesis, activos, recorrido, 5 canales, plan y cierre) y con
+ *  8000 volvía a quedar cerca del corte. */
+const MAX_TOKENS = 16000;
 
 /** Lazy: construirlo al importar el módulo lo ata al momento en que Next
  *  carga el archivo, antes de que el entorno esté listo. */
@@ -60,13 +74,50 @@ export type RunAnalysisOptions = {
    *  siempre: nadie lo va a reparar y el diagnóstico no puede quedar colgado
    *  en 'analyzing'. */
   marcarFalloTransitorio?: boolean;
+  /** Medición de PageSpeed hecha antes, en su propio step (`medirVelocidad`).
+   *  Sin ella, `collect` mide en el momento (lo usa la ruta de dev). */
+  pageSpeed?: PageSpeedFacts;
 };
+
+/** PageSpeed por separado, antes del análisis. Tarda ~50 s (hasta 180 s con
+ *  el reintento), y en su propio step de Inngest no le quita tiempo a Claude
+ *  dentro del maxDuration de la ruta. Además, si el análisis se reintenta,
+ *  esta medición queda memorizada y no se vuelve a pagar la espera.
+ *
+ *  Pasa el diagnóstico a 'analyzing' al empezar: para quien espera, medir la
+ *  velocidad ya es parte del análisis.
+ *
+ *  Nunca tira. `null` = no se pudo leer la empresa; en ese caso `runAnalysis`
+ *  va a encontrar el mismo problema y lo reporta con su clasificación. */
+export async function medirVelocidad(diagnosticId: string): Promise<PageSpeedFacts | null> {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("diagnostics")
+    .select("status, companies(website)")
+    .eq("id", diagnosticId)
+    .maybeSingle();
+  if (error || !data) return null;
+
+  const empresa = Array.isArray(data.companies) ? data.companies[0] : data.companies;
+  const url = normalizarEntrada(empresa?.website);
+  if (!url) return sinMedicion("Sin sitio web para medir");
+
+  if (data.status === "pending") {
+    await supabase
+      .from("diagnostics")
+      .update({ status: "analyzing", updated_at: new Date().toISOString() })
+      .eq("id", diagnosticId);
+  }
+
+  return pageSpeed(url);
+}
 
 export async function runAnalysis(
   diagnosticId: string,
   opciones: RunAnalysisOptions = {},
 ): Promise<RunAnalysisResult> {
-  const { marcarFalloTransitorio: persistirFallo = true } = opciones;
+  const { marcarFalloTransitorio: persistirFallo = true, pageSpeed: velocidadPrevia } = opciones;
   const supabase = createAdminClient();
   const modo = analysisMode();
   const methodVersion = modo === "mock" ? MOCK_METHOD_VERSION : METHOD_VERSION;
@@ -106,6 +157,8 @@ export async function runAnalysis(
         diagnosticId,
         "El diagnóstico no tiene empresa asociada",
         methodVersion,
+        // Todavía no llamamos a la API: no hay nada gastado que registrar.
+        null,
         { retriable: false, persistir: persistirFallo },
       );
     }
@@ -117,13 +170,20 @@ export async function runAnalysis(
       province: companyRaw.province,
     };
 
+    // Si PageSpeed ya se midió en su step, el diagnóstico está en 'analyzing'
+    // desde entonces: volver a pisar updated_at haría que la pantalla de
+    // espera recalcule el tiempo desde cero y se quede congelada.
     await supabase
       .from("diagnostics")
-      .update({ status: "analyzing", updated_at: new Date().toISOString() })
+      .update(
+        velocidadPrevia
+          ? { status: "analyzing" }
+          : { status: "analyzing", updated_at: new Date().toISOString() },
+      )
       .eq("id", diagnosticId);
 
     // 2. Hechos verificables. No tira nunca: trae warnings si algo falló.
-    const facts = await collect(company);
+    const facts = await collect(company, { pageSpeed: velocidadPrevia });
 
     // El HTML crudo pesa hasta 3 MB: no va al prompt (quemaría el contexto)
     // ni a la base. Todo lo que necesitamos ya está destilado en los facts.
@@ -138,7 +198,7 @@ export async function runAnalysis(
     const interpretacion =
       modo === "mock"
         ? interpretarMock(company, factsLimpios)
-        : await pedirAnalisis(company, factsLimpios);
+        : await pedirAnalisis(supabase, diagnosticId, company, factsLimpios);
 
     if (!interpretacion.ok) {
       return await marcarFallido(
@@ -146,6 +206,7 @@ export async function runAnalysis(
         diagnosticId,
         interpretacion.error,
         methodVersion,
+        interpretacion.uso,
         // El mock sale del código: si no cumple el esquema, reintentarlo da lo
         // mismo. Contra Claude, en cambio, el fallo suele ser de la API o una
         // respuesta que no validó, y un reintento tiene chances reales.
@@ -164,18 +225,17 @@ export async function runAnalysis(
       // distinguirse de uno real de un vistazo.
       analysis_source: modo === "mock" ? ("mock" as const) : ("claude" as const),
       facts: factsLimpios,
-      a_validar: [
-        ...factsLimpios.warnings,
-        "Marca (branding/redes/reputación): requiere análisis completo",
-        "Google Ads y Meta Ads: a validar con accesos",
-      ],
-      pilar_marca: { estado: "a_validar" as const },
+      // Lo único que va acá es lo que NO se pudo verificar en esta corrida.
+      // Los canales que esta versión directamente no mira (Google Ads, Meta,
+      // redes, ficha, competencia) no son "a validar": no se prometen.
+      a_validar: factsLimpios.warnings,
     };
 
     // 7. Queda en 'preliminary': todavía lo tiene que revisar un humano.
-    const { error: errorGuardado } = await supabase
-      .from("diagnostics")
-      .update({
+    const { error: errorGuardado } = await guardarConCosto(
+      supabase,
+      diagnosticId,
+      {
         status: "preliminary",
         score_general: scores.score_general,
         score_infra: scores.score_infra,
@@ -183,8 +243,9 @@ export async function runAnalysis(
         results,
         method_version: methodVersion,
         updated_at: new Date().toISOString(),
-      })
-      .eq("id", diagnosticId);
+      },
+      interpretacion.uso,
+    );
 
     if (errorGuardado) {
       return await marcarFallido(
@@ -192,6 +253,8 @@ export async function runAnalysis(
         diagnosticId,
         `No se pudo guardar el resultado: ${errorGuardado.message}`,
         methodVersion,
+        // El análisis salió bien y se pagó; lo que falló fue la escritura.
+        interpretacion.uso,
         { retriable: true, persistir: persistirFallo },
       );
     }
@@ -201,16 +264,87 @@ export async function runAnalysis(
     const detalle = error instanceof Error ? error.message : "error desconocido";
     // Un throw que no previmos: lo tratamos como transitorio y que Inngest
     // decida cuántas veces vale la pena volver a intentarlo.
-    return await marcarFallido(supabase, diagnosticId, detalle, methodVersion, {
+    // Un throw imprevisto puede caer antes o después de la llamada a la API;
+    // desde acá no sabemos cuál, así que no afirmamos un costo.
+    return await marcarFallido(supabase, diagnosticId, detalle, methodVersion, null, {
       retriable: true,
       persistir: persistirFallo,
     });
   }
 }
 
+/** Guarda el diagnóstico incluyendo el costo, y si la base todavía no tiene
+ *  las columnas —falta correr docs/costos-analisis.sql— reintenta sin ellas.
+ *
+ *  El costo es un dato accesorio: que falte la migración no puede ser el
+ *  motivo por el que se pierda un análisis que ya se pagó.
+ *
+ *  Ojo con el código de error, que acá se pagó aprendiéndolo: PostgREST valida
+ *  el update contra su schema cache ANTES de mandarlo a Postgres, así que una
+ *  columna que no existe vuelve como PGRST204 ("Could not find the column ...
+ *  in the schema cache"), no como el 42703 de Postgres. Contemplamos los dos:
+ *  el 42703 aparece igual por otras vías. Cualquier otro error se devuelve tal
+ *  cual, porque ahí sí pasó algo que hay que mirar. */
+async function guardarConCosto(
+  supabase: ReturnType<typeof createAdminClient>,
+  diagnosticId: string,
+  campos: Record<string, unknown>,
+  uso: UsoAnalisis | null,
+) {
+  const conCosto = await supabase
+    .from("diagnostics")
+    .update({
+      ...campos,
+      analysis_usage: uso,
+      analysis_cost_usd: uso?.costoUsd ?? null,
+    })
+    .eq("id", diagnosticId);
+
+  const columnaFaltante =
+    conCosto.error?.code === "PGRST204" || conCosto.error?.code === "42703";
+  if (!conCosto.error || !columnaFaltante) return conCosto;
+
+  console.warn(
+    "[analysis] la base todavía no tiene las columnas de costo (correr docs/costos-analisis.sql): guardo el diagnóstico sin el costo",
+  );
+
+  return supabase.from("diagnostics").update(campos).eq("id", diagnosticId);
+}
+
+/** Una fila en `analysis_costs` (docs/registro-gasto.sql) por cada llamada a
+ *  la API. Es la fuente del gasto total de la consola: a diferencia de las
+ *  columnas de `diagnostics`, no se pisa en un reintento ni se va con un
+ *  borrado.
+ *
+ *  Nunca corta el análisis: si la tabla no existe todavía o el insert falla,
+ *  queda un warning y el diagnóstico sigue (el costo igual se guarda en la
+ *  fila del diagnóstico, como antes). */
+async function registrarLlamada(
+  supabase: ReturnType<typeof createAdminClient>,
+  { diagnosticId, empresa, uso }: { diagnosticId: string; empresa: string; uso: UsoAnalisis },
+): Promise<void> {
+  const { error } = await supabase.from("analysis_costs").insert({
+    diagnostic_id: diagnosticId,
+    empresa,
+    modelo: uso.modelo,
+    llamadas: uso.llamadas,
+    input_tokens: uso.inputTokens,
+    output_tokens: uso.outputTokens,
+    cache_read_tokens: uso.cacheReadTokens,
+    cache_write_tokens: uso.cacheWriteTokens,
+    costo_usd: uso.costoUsd,
+  });
+
+  if (error) {
+    console.warn(
+      `[analysis] no se pudo registrar el gasto de ${diagnosticId} en analysis_costs (¿falta docs/registro-gasto.sql?): ${error.message}`,
+    );
+  }
+}
+
 type Interpretacion =
-  | { ok: true; output: AnalysisOutput }
-  | { ok: false; error: string };
+  | { ok: true; output: AnalysisOutput; uso: UsoAnalisis | null }
+  | { ok: false; error: string; uso: UsoAnalisis | null };
 
 /** Camino MOCK: arma el output desde los facts en vez de pedírselo a Claude.
  *  Pasa por el MISMO `validar()` a propósito — serializa y re-parsea para que
@@ -222,21 +356,38 @@ function interpretarMock(
 ): Interpretacion {
   const evaluado = validar(JSON.stringify(buildMockOutput(company, facts)));
   if (!evaluado.ok) {
-    return { ok: false, error: `El análisis mock no cumple el esquema: ${evaluado.error}` };
+    return {
+      ok: false,
+      error: `El análisis mock no cumple el esquema: ${evaluado.error}`,
+      uso: null,
+    };
   }
-  return evaluado;
+  // uso null y no cero: el mock no llamó a la API, no es que salió gratis.
+  return { ...evaluado, uso: null };
 }
 
 /** Llama a Claude y valida. Si el JSON no cumple el esquema, hace UN reintento
  *  mostrándole su propia salida y el error de validación. */
 async function pedirAnalisis(
+  supabase: ReturnType<typeof createAdminClient>,
+  diagnosticId: string,
   company: CompanyForAnalysis,
   facts: SiteFacts,
 ): Promise<Interpretacion> {
-  const model = process.env.ANTHROPIC_MODEL;
+  // Se lee en cada corrida, no al cargar el módulo: un cambio en
+  // Configuración tiene que valer para la próxima auditoría sin reiniciar.
+  const { modelo: model } = await modeloDeAnalisis(supabase);
   if (!model) {
-    return { ok: false, error: "ANTHROPIC_MODEL no está configurada" };
+    return {
+      ok: false,
+      error: "No hay modelo configurado: elegí uno en Configuración o seteá ANTHROPIC_MODEL",
+      uso: null,
+    };
   }
+
+  // Se acumula acá y se devuelve pase lo que pase: un análisis que falló en la
+  // validación igual consumió tokens y hay que poder verlo en la consola.
+  let uso = usoInicial(model);
 
   const mensajes: Anthropic.MessageParam[] = [
     { role: "user", content: buildUserMessage(company, facts) },
@@ -250,8 +401,17 @@ async function pedirAnalisis(
       messages: mensajes,
     });
 
+    uso = acumularUso(uso, respuesta.usage);
+    // Al libro de gasto apenas vuelve la llamada: si algo tira después, o el
+    // diagnóstico se reintenta o se borra, lo pagado ya quedó registrado.
+    await registrarLlamada(supabase, {
+      diagnosticId,
+      empresa: company.name,
+      uso: acumularUso(usoInicial(model), respuesta.usage),
+    });
+
     if (respuesta.stop_reason === "refusal") {
-      return { ok: false, error: "El modelo declinó responder el análisis" };
+      return { ok: false, error: "El modelo declinó responder el análisis", uso };
     }
 
     const texto = extraerTexto(respuesta);
@@ -260,17 +420,19 @@ async function pedirAnalisis(
       return {
         ok: false,
         error: `La respuesta se truncó en max_tokens (${MAX_TOKENS}): el JSON quedó incompleto`,
+        uso,
       };
     }
 
     const evaluado = validar(texto);
-    if (evaluado.ok) return evaluado;
+    if (evaluado.ok) return { ...evaluado, uso };
 
     // Último intento agotado: devolvemos el motivo real, no un genérico.
     if (intento === 2) {
       return {
         ok: false,
         error: `La respuesta no cumple el esquema tras el reintento: ${evaluado.error}`,
+        uso,
       };
     }
 
@@ -286,10 +448,14 @@ async function pedirAnalisis(
     );
   }
 
-  return { ok: false, error: "No se obtuvo un análisis válido" };
+  return { ok: false, error: "No se obtuvo un análisis válido", uso };
 }
 
-function validar(texto: string): Interpretacion {
+type Validacion =
+  | { ok: true; output: AnalysisOutput }
+  | { ok: false; error: string };
+
+function validar(texto: string): Validacion {
   const limpio = quitarCercas(texto);
   if (!limpio) return { ok: false, error: "la respuesta vino vacía" };
 
@@ -334,6 +500,7 @@ async function marcarFallido(
   diagnosticId: string,
   error: string,
   methodVersion: string,
+  uso: UsoAnalisis | null,
   { retriable, persistir }: { retriable: boolean; persistir: boolean },
 ): Promise<RunAnalysisResult> {
   // Un fallo permanente se escribe siempre. Uno transitorio con
@@ -342,15 +509,18 @@ async function marcarFallido(
   if (!retriable || persistir) {
     // No hay columna de error: el motivo va al jsonb de results para poder
     // depurarlo desde la consola interna.
-    await supabase
-      .from("diagnostics")
-      .update({
+    // El costo se guarda aunque haya fallado: los tokens se pagaron igual.
+    await guardarConCosto(
+      supabase,
+      diagnosticId,
+      {
         status: "failed",
         results: { error, fallo_en: new Date().toISOString() },
         method_version: methodVersion,
         updated_at: new Date().toISOString(),
-      })
-      .eq("id", diagnosticId);
+      },
+      uso,
+    );
   }
 
   return { ok: false, diagnosticId, error, retriable };

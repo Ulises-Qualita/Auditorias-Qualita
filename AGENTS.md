@@ -27,7 +27,9 @@ Estoy construyendo una plataforma donde una empresa completa un formulario y rec
 - La ANTHROPIC_API_KEY y la SUPABASE_SERVICE_ROLE_KEY NUNCA llegan al browser. Todo lo que las use corre en servidor (route handlers / server actions).
 - El análisis con Claude corre en el servidor, nunca en el cliente.
 - El pipeline mezcla chequeos DETERMINISTAS (con código: title/meta, URLs, GA4/GTM/píxel, DMARC por DNS, PageSpeed) + interpretación con Claude. Lo que no se puede verificar se marca "a validar", NUNCA se inventa (ni cifras de inversión, ni métricas).
-- El diagnóstico se estructura en 2 pilares: "Marca implementadora" (branding, redes, reputación) e "Infraestructura digital" (sitio, SEO, Google Ads, Meta Ads, medición).
+- El diagnóstico tiene UN solo pilar: **"Arquitectura digital"**. El pilar "Marca implementadora" se sacó (2026-09-09): nunca tuvo datos y la auditoría real de Qualita no se organiza en pilares. Las columnas `score_marca` y el campo `pilar_marca` siguen en la base para que los informes viejos parseen, pero no se calculan ni se muestran.
+- El informe se organiza por CANALES, en el orden del recorrido del comprador: Sitio web, Vías de contacto, Cómo está ordenado el sitio, Qué ve Google (on-page) y Medición (incluye DMARC).
+- Los canales que hoy NO se pueden verificar con código (posiciones en Google, Google Ads, Meta Ads, redes, ficha de Google, competencia) se OMITEN del informe. No se muestran vacíos, ni "a validar", ni gateados: esta versión no los promete.
 - Cada diagnóstico guarda su method_version.
 - Antes de mostrarse "oficial" al cliente, un humano lo revisa (status pasa a 'sent').
 
@@ -35,7 +37,7 @@ Estoy construyendo una plataforma donde una empresa completa un formulario y rec
 1. Empresa completa el form (1 paso por ahora: datos de empresa + contacto/email al final). No hay paso de redes todavía.
 2. Submit → crea registros → dispara análisis en background.
 3. Pantalla "analizando" con polling del status.
-4. Informe público en /d/[token] (los 2 pilares). El plan de acción queda gateado detrás de un CTA a Qualita.
+4. Informe público en /d/[token], con la estructura de la auditoría de referencia: tesis de portada → lo que ya tienen → el recorrido → resumen de canales (escala de 5 puntos) → detalle por canal con evidencia → puntos de fuga → plan (gateado detrás del CTA) → "en una página" → lo que quedó a validar.
 5. Consola interna (con login) para ver leads/diagnósticos y revisarlos.
 
 ## Cómo quiero trabajar
@@ -48,7 +50,7 @@ Estoy construyendo una plataforma donde una empresa completa un formulario y rec
 La lógica completa del diagnóstico está en `docs/metodologia-diagnostico.md`: qué se investiga en cada canal, el análisis de arquitectura (cómo piensa la empresa vs. cómo busca el comprador), el mapa del sector, las reglas anti-invención, el scoring por canal y el Método Qualita en 6 pasos.
 
 - Es la referencia de calidad: cualquier output del análisis debe estar a la altura de ese documento.
-- El prompt real que se le pasa a la API de Claude (Fase 3) es una versión DERIVADA y condensada de ese doc, adaptada para devolver JSON estructurado (scores + hallazgos por canal + 2 pilares), no un deck. Ese prompt vivirá en `lib/analysis/`.
+- El prompt real que se le pasa a la API de Claude es una versión DERIVADA y condensada de ese doc, adaptada para devolver JSON estructurado (hallazgos por canal + las secciones del informe), no un deck. Vive en `lib/analysis/prompt.ts`.
 - Reglas que salen de ahí y son innegociables: no inventar cifras (inversión, impresiones, presupuestos), marcar lo no verificable como "a validar", y separar chequeos deterministas (código) de interpretación (Claude).
 - Ese archivo NO se importa en el cliente ni se sirve al browser.
 
@@ -59,12 +61,13 @@ La identidad ya está definida por el manual de marca. Respetala al pie; no inve
 ## Tipografías (Google Fonts)
 - **Unbounded** — títulos, números grandes y destacados. Pesos 500/600/700. Es display, geométrica, con personalidad.
 - **DM Sans** — todo el cuerpo de texto, tablas, labels, botones. Pesos 400/500/600/700.
+- **Poppins** — SOLO en los títulos de las láminas del informe del cliente (`/d/[token]`, debajo del hero), porque el informe sigue el deck `docs/referencia-diseno-informe.html`. Se carga con `next/font` en `app/(cliente)/d/[token]/Deck.tsx` y se aplica con `.lamina`. El hero del informe, la landing y la consola siguen en Unbounded.
 - Dongle es SOLO para el logo; no se usa en la UI.
 - Importar ambas de Google Fonts.
 
 ## Paleta (valores exactos, no aproximar)
 - `--navy: #252851` — color estructural y de texto sobre fondo claro. Base de las secciones oscuras. Es el "oscuro" de la marca (NO usar negro puro).
-- `--magenta: #B50CC5` — acento principal (Marca implementadora, énfasis, datos).
+- `--magenta: #B50CC5` — acento principal (énfasis, datos destacados, kickers).
 - `--coral: #FE6F61` — segundo acento (Infraestructura, alertas, el guion de los kickers).
 - `--blanco: #FFFFFF`
 - `--crema: #FFF4EC` — fondo suave alternativo para bandas de sección.
@@ -73,8 +76,8 @@ La identidad ya está definida por el manual de marca. Respetala al pie; no inve
 
 ## Gradientes
 - Principal (botones, acentos): `linear-gradient(100deg, #FE6F61, #B50CC5)` (coral→magenta).
-- Marca implementadora: violeta → `linear-gradient(90deg, #d95cf5, #a915c4)`.
-- Infraestructura: coral → `linear-gradient(90deg, #ff9084, #FE6F61)`.
+- Violeta (del manual de marca) → `linear-gradient(90deg, #d95cf5, #a915c4)`.
+- Coral → `linear-gradient(90deg, #ff9084, #FE6F61)`.
 - Oscuro/degradé de marca: `linear-gradient(125deg, #B50CC5, #252851)` (magenta→navy).
 - Usarlos con moderación, sin tapar la legibilidad.
 
@@ -100,7 +103,7 @@ La identidad ya está definida por el manual de marca. Respetala al pie; no inve
 - Evitar la "dona de score" genérica; preferir escalas/barras con contexto.
 
 ## Dos vistas, dos tonos
-- **Vista empresa (cliente):** cálida, guiada, en "vos" argentino, lenguaje claro sin tecnicismos. Heros oscuros con auras + asterisco; resultado con los 2 pilares (Marca en violeta, Infraestructura en coral) y una tarjeta glass de score.
+- **Vista empresa (cliente):** cálida, guiada, en "vos" argentino, lenguaje claro sin tecnicismos. Hero oscuro con auras + asterisco, con la tesis del diagnóstico como titular y una tarjeta glass de score; el cuerpo va por canales, con la escala de 5 puntos de la auditoría (nada de donas).
 - **Vista Qualita (consola):** más densa y sobria, tipo SaaS. Sidebar navy, workspace claro, tablas, pills de estado, drawers. Acá sí puede ser más técnica (checklists ✕/!/✓ por vertical).
 
 ## Estados y colores semánticos (diagnóstico)
@@ -108,7 +111,9 @@ La identidad ya está definida por el manual de marca. Respetala al pie; no inve
 - Nivel de madurez general: Inicial (0–39, rojo), En desarrollo (40–64, ámbar), Sólido (65–100, verde).
 - Estado de lead (consola): nuevo (info), contactado (ámbar), en conversación (magenta), cliente (verde), descartado (gris).
 ## Referencia
-Tengo un mockup HTML funcional (`qualita-plataforma-completa.html`) en la carpeta /design con todo esto ya aplicado: form, informe con 2 pilares, dashboard, tabla de leads, drawer y detalle con tabs. Úsalo como fuente de verdad visual — extraé de ahí los tokens, componentes y microcopy en vez de inventar.
+Tengo un mockup HTML funcional en la carpeta /design (el archivo real es `qualita-boceto.html`) con la identidad aplicada: form, dashboard, tabla de leads, drawer y detalle con tabs. Úsalo como fuente de verdad de tokens, componentes y microcopy en vez de inventar.
+
+**Excepción: el informe del cliente.** Su estructura y su tono salen de `docs/ejemplo-auditoria-audifarm.pdf`, no del mockup (que todavía muestra el informe viejo de 2 pilares). El PDF manda para qué secciones hay y en qué orden; el mockup manda para cómo se ven.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

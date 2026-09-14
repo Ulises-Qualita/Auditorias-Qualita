@@ -40,6 +40,11 @@ export type DiagnosticoFila = {
   empresa: EmpresaFila | null;
 };
 
+/** Los leads son los diagnósticos que entraron por el form público. Los que
+ *  genera el equipo desde la consola (origen 'consola') viven en su propia
+ *  solapa y no cuentan en el badge, el embudo ni las métricas del panel. */
+const ORIGEN_LEAD = "formulario";
+
 function unoDe<T>(valor: T | T[] | null): T | null {
   if (Array.isArray(valor)) return valor[0] ?? null;
   return valor ?? null;
@@ -58,7 +63,10 @@ export async function contarLeads(): Promise<ConteosLead> {
   const supabase = await createServerSupabase();
 
   const contar = async (estado?: EstadoLead) => {
-    let query = supabase.from("diagnostics").select("*", { count: "exact", head: true });
+    let query = supabase
+      .from("diagnostics")
+      .select("*", { count: "exact", head: true })
+      .eq("origen", ORIGEN_LEAD);
     if (estado) query = query.eq("lead_status", estado);
     const { count } = await query;
     return count ?? 0;
@@ -91,6 +99,7 @@ export async function madurezPromedio(): Promise<number | null> {
   const { data } = await supabase
     .from("diagnostics")
     .select("score_general")
+    .eq("origen", ORIGEN_LEAD)
     .not("score_general", "is", null);
 
   const scores = (data ?? [])
@@ -109,18 +118,25 @@ export type Rubro = { nombre: string; cantidad: number };
 
 /** Agrupar en SQL pediría una vista o un RPC; por ahora se trae una sola
  *  columna de texto y se cuenta acá. Si esto crece, la versión buena es una
- *  vista con `select industry, count(*) ... group by industry`. */
+ *  vista con `select industry, count(*) ... group by industry`.
+ *
+ *  Se entra por diagnostics y no por companies para poder filtrar el origen:
+ *  el origen es del diagnóstico, no de la empresa. */
 export async function rubrosMasDiagnosticados(limite = 5): Promise<Rubro[]> {
   const supabase = await createServerSupabase();
 
   const { data } = await supabase
-    .from("companies")
-    .select("industry")
-    .not("industry", "is", null);
+    .from("diagnostics")
+    .select("companies(industry)")
+    .eq("origen", ORIGEN_LEAD);
+
+  const filas = (data ?? []) as unknown as {
+    companies: { industry: string | null } | { industry: string | null }[] | null;
+  }[];
 
   const cuenta = new Map<string, number>();
-  for (const fila of data ?? []) {
-    const rubro = (fila.industry ?? "").trim();
+  for (const fila of filas) {
+    const rubro = (unoDe(fila.companies)?.industry ?? "").trim();
     if (!rubro) continue;
     cuenta.set(rubro, (cuenta.get(rubro) ?? 0) + 1);
   }
@@ -138,18 +154,29 @@ export async function rubrosMasDiagnosticados(limite = 5): Promise<Rubro[]> {
 export type MadurezCanal = { id: CanalMadurez; label: string; promedio: number; base: number };
 
 /** La madurez de cada canal vive dentro del jsonb `results` (escala 1 a 5).
- *  Se proyectan SOLO esos tres paths con la sintaxis `->` de PostgREST, así el
+ *  Se proyectan SOLO esos paths con la sintaxis `->` de PostgREST, así el
  *  results completo se queda en la base. A futuro, si esto se consulta
- *  seguido, conviene materializar `madurez_sitio` / `madurez_seo` /
- *  `madurez_medicion` como columnas generadas y ordenar por ellas. */
+ *  seguido, conviene materializar una columna generada por canal y ordenar por
+ *  ellas.
+ *
+ *  Los informes viejos (dos pilares, `results->infra`) no matchean estos
+ *  paths: devuelven null y quedan fuera del promedio, que es lo correcto —
+ *  fueron generados con otro método y no son comparables. */
 export async function madurezPorCanal(): Promise<MadurezCanal[]> {
   const supabase = await createServerSupabase();
 
   const { data } = await supabase
     .from("diagnostics")
     .select(
-      "sitio:results->infra->sitio->madurez, seo:results->infra->seo->madurez, medicion:results->infra->medicion->madurez",
+      [
+        "sitio:results->canales->sitio->madurez",
+        "contacto:results->canales->contacto->madurez",
+        "orden:results->canales->orden->madurez",
+        "busqueda:results->canales->busqueda->madurez",
+        "medicion:results->canales->medicion->madurez",
+      ].join(", "),
     )
+    .eq("origen", ORIGEN_LEAD)
     .in("status", ["preliminary", "sent"]);
 
   const filas = (data ?? []) as unknown as Record<CanalMadurez, unknown>[];
@@ -192,6 +219,7 @@ export async function ultimosNuevos(limite = 5): Promise<DiagnosticoFila[]> {
   const { data } = await supabase
     .from("diagnostics")
     .select(COLUMNAS_FILA)
+    .eq("origen", ORIGEN_LEAD)
     .eq("lead_status", "nuevo")
     .order("created_at", { ascending: false })
     .limit(limite);
@@ -207,6 +235,7 @@ export async function listarDiagnosticos(estado?: EstadoLead): Promise<Diagnosti
   let query = supabase
     .from("diagnostics")
     .select(COLUMNAS_FILA)
+    .eq("origen", ORIGEN_LEAD)
     .order("created_at", { ascending: false });
 
   if (estado) query = query.eq("lead_status", estado);
@@ -215,7 +244,28 @@ export async function listarDiagnosticos(estado?: EstadoLead): Promise<Diagnosti
   return normalizar((data ?? []) as unknown as FilaCruda[]);
 }
 
+export type OrigenDiagnostico = "formulario" | "consola";
+
+export type InternoFila = DiagnosticoFila & { creado_por: string | null };
+
+/** Los diagnósticos que generó el equipo desde la consola. No son leads: no
+ *  tienen contacto y no pasan por el embudo. */
+export async function listarInternos(): Promise<InternoFila[]> {
+  const supabase = await createServerSupabase();
+
+  const { data } = await supabase
+    .from("diagnostics")
+    .select(`${COLUMNAS_FILA}, creado_por`)
+    .eq("origen", "consola")
+    .order("created_at", { ascending: false });
+
+  const filas = (data ?? []) as unknown as (FilaCruda & { creado_por: string | null })[];
+  return filas.map(({ companies, ...resto }) => ({ ...resto, empresa: unoDe(companies) }));
+}
+
 export type DiagnosticoDetalle = DiagnosticoFila & {
+  origen: OrigenDiagnostico;
+  creado_por: string | null;
   score_infra: number | null;
   score_marca: number | null;
   method_version: string | null;
@@ -234,19 +284,24 @@ export type DiagnosticoDetalle = DiagnosticoFila & {
 export async function diagnosticoCompleto(id: string): Promise<DiagnosticoDetalle | null> {
   const supabase = await createServerSupabase();
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("diagnostics")
     .select(
       `id, created_at, updated_at, status, lead_status, score_general, score_infra, score_marca,
-       method_version, reviewed_by, results,
+       method_version, reviewed_by, results, origen, creado_por,
        companies(${COLUMNAS_EMPRESA}), share_tokens(token)`,
     )
     .eq("id", id)
     .maybeSingle();
 
+  // Un error de la query no es "no existe": sin esto se mostraba un 404 y la
+  // causa real (columna, policy, relación) quedaba escondida.
+  if (error) throw new Error(`No se pudo leer el diagnóstico ${id}: ${error.message}`);
   if (!data) return null;
 
   const fila = data as unknown as FilaCruda & {
+    origen: OrigenDiagnostico;
+    creado_por: string | null;
     score_infra: number | null;
     score_marca: number | null;
     method_version: string | null;

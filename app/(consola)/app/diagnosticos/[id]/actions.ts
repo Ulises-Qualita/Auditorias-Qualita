@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { ESTADOS_LEAD } from "@/lib/consola/leads";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { MINUTOS_COLGADO } from "@/lib/consola/reintento";
+import { exigirEquipo } from "@/lib/consola/sesion";
+import { diagnosticRequested, inngest } from "@/lib/inngest/client";
 
 /** Las escrituras de la consola.
  *
@@ -21,31 +23,17 @@ import { createServerSupabase } from "@/lib/supabase/server";
  *     action viene del browser y no es confiable, por más que la UI solo
  *     mande los 5 estados válidos. */
 
-const DOMINIO = "@qualita.studio";
-
 const idSchema = z.uuid();
 const estadoSchema = z.enum(ESTADOS_LEAD);
 
 export type Resultado = { ok: true } | { ok: false; error: string };
 
-/** Falta de permiso = excepción, no un `{ ok: false }`: no es un error que la
- *  UI deba mostrar y reintentar, es alguien que no debería estar acá. */
-async function exigirEquipo() {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user?.email?.toLowerCase().endsWith(DOMINIO)) {
-    throw new Error("No autorizado.");
-  }
-
-  return { supabase, email: user.email };
-}
-
 function revalidar(id: string) {
   revalidatePath(`/app/diagnosticos/${id}`);
   revalidatePath("/app/diagnosticos");
+  // Las mismas acciones (revisar, reintentar) se usan en los internos.
+  revalidatePath(`/app/internos/${id}`);
+  revalidatePath("/app/internos");
   // El panel también cambia: los tiles y el embudo salen de estos mismos datos.
   revalidatePath("/app");
 }
@@ -109,6 +97,116 @@ export async function marcarRevisado(diagnosticId: string): Promise<Resultado> {
       error:
         "No se pudo marcar como revisado. O ya estaba enviado, o falta la policy de UPDATE.",
     };
+  }
+
+  revalidar(id.data);
+  return { ok: true };
+}
+
+/** Volver a encolar el análisis.
+ *
+ *  El caso que lo justifica: si `inngest.send()` falla en el alta (por
+ *  ejemplo, sin el Dev Server levantado), el route handler igual devuelve 201
+ *  y el diagnóstico queda en 'pending' sin que nada lo vuelva a tocar. Antes
+ *  la única salida era un curl al Dev Server; ahora es un botón.
+ *
+ *  El orden importa. Primero movemos la fila con la condición en el WHERE y
+ *  recién después publicamos el evento: así dos clicks (o dos pestañas)
+ *  compiten por el mismo update y solo uno matchea, en vez de publicar dos
+ *  eventos y correr el análisis dos veces sobre la misma fila. */
+export async function reintentarAnalisis(diagnosticId: string): Promise<Resultado> {
+  const id = idSchema.safeParse(diagnosticId);
+  if (!id.success) return { ok: false, error: "Datos inválidos." };
+
+  const { supabase } = await exigirEquipo();
+  const limite = new Date(Date.now() - MINUTOS_COLGADO * 60_000).toISOString();
+
+  const { data, error } = await supabase
+    .from("diagnostics")
+    .update({
+      status: "pending",
+      // El `results` de un fallo es `{ error, fallo_en }`: si no se limpia, la
+      // pantalla sigue mostrando el error viejo mientras corre el intento
+      // nuevo. El motivo ya se leyó en esta misma pantalla antes de apretar.
+      results: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id.data)
+    // La misma regla que motivoReintento(), pero del lado de Postgres, que es
+    // el único que puede aplicarla sin ventana de carrera.
+    .or(`status.eq.failed,and(status.in.(pending,analyzing),updated_at.lt.${limite})`)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) {
+    return {
+      ok: false,
+      error:
+        "No se pudo reencolar: el análisis ya terminó o hay un intento en curso. Recargá la página.",
+    };
+  }
+
+  try {
+    await inngest.send(diagnosticRequested.create({ diagnosticId: id.data }));
+  } catch {
+    // Acá no nos lo tragamos como en el alta: la fila queda en 'pending' y el
+    // mensaje dice qué falta. Es exactamente el fallo que este botón repara.
+    revalidar(id.data);
+    return {
+      ok: false,
+      error:
+        "El diagnóstico volvió a la cola, pero no se pudo publicar el evento. ¿Está corriendo el Dev Server de Inngest (npm run inngest)?",
+    };
+  }
+
+  revalidar(id.data);
+  return { ok: true };
+}
+
+/** Borra el diagnóstico de la base, sin papelera: no se puede deshacer.
+ *
+ *  El orden sigue a las FK: primero el token (apunta al diagnóstico), después
+ *  el diagnóstico, y por último la empresa si quedó sin diagnósticos. Sin ese
+ *  último paso, el índice único sobre el email seguiría bloqueando a esa
+ *  empresa para volver a diagnosticarse. */
+export async function eliminarDiagnostico(diagnosticId: string): Promise<Resultado> {
+  const id = idSchema.safeParse(diagnosticId);
+  if (!id.success) return { ok: false, error: "Datos inválidos." };
+
+  const { supabase } = await exigirEquipo();
+
+  const { error: errorTokens } = await supabase
+    .from("share_tokens")
+    .delete()
+    .eq("diagnostic_id", id.data);
+  if (errorTokens) return { ok: false, error: errorTokens.message };
+
+  const { data, error } = await supabase
+    .from("diagnostics")
+    .delete()
+    .eq("id", id.data)
+    // Igual que en el update: sin policy, RLS borra cero filas sin quejarse.
+    .select("company_id")
+    .maybeSingle();
+
+  if (error) return { ok: false, error: error.message };
+  if (!data) {
+    return {
+      ok: false,
+      error:
+        "No se pudo eliminar. O ya no existía, o falta la policy de DELETE (docs/rls-delete-policies.sql).",
+    };
+  }
+
+  if (data.company_id) {
+    const { count } = await supabase
+      .from("diagnostics")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", data.company_id);
+    if (count === 0) {
+      await supabase.from("companies").delete().eq("id", data.company_id);
+    }
   }
 
   revalidar(id.data);

@@ -12,10 +12,11 @@ import type { AnalysisOutput } from "./schema";
  *  Regla de oro: todo lo que dice el mock se DERIVA de los facts reales. Si un
  *  hallazgo no está en los facts, no aparece acá tampoco. */
 
-export const MOCK_ANALYSIS_VERSION = "analysis-mock-1.0.0";
+export const MOCK_ANALYSIS_VERSION = "analysis-mock-2.1.0";
 
-type Check = AnalysisOutput["infra"]["sitio"]["checks"][number];
-type Canal = AnalysisOutput["infra"]["sitio"];
+type Check = AnalysisOutput["canales"]["sitio"]["checks"][number];
+type Canal = AnalysisOutput["canales"]["sitio"];
+type Numero = AnalysisOutput["activos"][number];
 type Fuga = AnalysisOutput["fugas"][number];
 
 /** Títulos que no dicen nada del negocio: los tratamos como "genérico". */
@@ -30,26 +31,20 @@ export function buildMockOutput(
 
   const medicion = evaluarMedicion(facts, fugas);
   const sitio = evaluarSitio(facts, fugas);
-  const seo = evaluarSeo(facts, fugas);
+  const busqueda = evaluarSeo(facts, fugas);
+  const contacto = evaluarContacto(facts, fugas);
+  const orden = evaluarOrden(facts, fugas);
+  const canales = { sitio, contacto, orden, busqueda, medicion };
 
   return {
-    resumen: armarResumen(company, facts, { sitio, seo, medicion }),
-    infra: {
-      sitio,
-      seo,
-      medicion,
-      google_ads: {
-        estado: "a_validar",
-        insight:
-          "Google Ads no se mide en esta versión del diagnóstico: hace falta acceso de solo lectura a la cuenta para confirmar si hay campañas activas, con qué estructura y con qué conversión. Queda a validar.",
-      },
-      meta_ads: {
-        estado: "a_validar",
-        insight:
-          "Meta Ads no se mide en esta versión: sin acceso al Administrador Comercial no se puede afirmar si hay pauta activa ni cómo está midiendo. Queda a validar.",
-      },
-    },
+    tesis: armarTesis(company, facts, canales),
+    resumen: armarResumen(company, facts, canales),
+    activos: armarActivos(facts),
+    recorrido: armarRecorrido(facts),
+    canales,
     fugas: recortarFugas(fugas),
+    plan: armarPlan(canales),
+    cierre: armarCierre(company, facts, canales),
   };
 }
 
@@ -467,21 +462,20 @@ function evaluarSeo(facts: SiteFacts, fugas: Fuga[]): Canal {
 function armarResumen(
   company: CompanyForAnalysis,
   facts: SiteFacts,
-  canales: { sitio: Canal; seo: Canal; medicion: Canal },
+  canales: Canales,
 ): string {
   const nombre = company.name?.trim() || "tu empresa";
-  const promedio =
-    (canales.sitio.madurez + canales.seo.madurez + canales.medicion.madurez) / 3;
+  const promedio = promedioMadurez(canales);
 
   const partes: string[] = [];
 
   if (!facts.fetch.ok) {
     partes.push(
-      `No pudimos acceder al sitio de ${nombre}, así que la infraestructura digital queda casi entera a validar.`,
+      `No pudimos acceder al sitio de ${nombre}, así que la arquitectura digital queda casi entera a validar.`,
     );
   } else if (promedio >= 4) {
     partes.push(
-      `${nombre} tiene la infraestructura digital en orden: el sitio responde, se entiende y estás midiendo.`,
+      `${nombre} tiene la arquitectura digital en orden: el sitio responde, se entiende y estás midiendo.`,
     );
   } else if (promedio >= 2.5) {
     partes.push(
@@ -489,7 +483,7 @@ function armarResumen(
     );
   } else {
     partes.push(
-      `La infraestructura digital de ${nombre} está en un punto inicial: hay arreglos de bajo esfuerzo con mucho impacto.`,
+      `La arquitectura digital de ${nombre} está en un punto inicial: hay arreglos de bajo esfuerzo con mucho impacto.`,
     );
   }
 
@@ -516,9 +510,9 @@ function recortarFugas(fugas: Fuga[]): AnalysisOutput["fugas"] {
   if (fugas.length === 0) {
     return [
       {
-        titulo: "El diagnóstico todavía no ve la pauta",
+        titulo: "El diagnóstico mira solo la home",
         que_se_pierde:
-          "Google Ads y Meta Ads quedaron a validar. Si hay inversión activa, no sabemos qué está devolviendo.",
+          "Lo verificado es la portada del sitio. Las páginas internas, que es donde suele caer la búsqueda que más vale, requieren una revisión manual.",
       },
     ];
   }
@@ -526,7 +520,7 @@ function recortarFugas(fugas: Fuga[]): AnalysisOutput["fugas"] {
 }
 
 function recortarChecks(checks: Check[]): Check[] {
-  return checks.slice(0, 8);
+  return checks.slice(0, 6);
 }
 
 function esTitleGenerico(title: string): boolean {
@@ -536,4 +530,454 @@ function esTitleGenerico(title: string): boolean {
 
 function acotar(madurez: number): number {
   return Math.max(1, Math.min(5, madurez));
+}
+
+/* ------------------------------------------------------------------ contacto */
+
+type Canales = AnalysisOutput["canales"];
+
+/** Vías de contacto en la home. Es el canal que más pesa en el score: una
+ *  consulta que llega y no encuentra dónde dejar el dato se pierde entera. */
+function evaluarContacto(facts: SiteFacts, fugas: Fuga[]): Canal {
+  const c = facts.contacto;
+  const checks: Check[] = [];
+
+  if (!c) {
+    return {
+      madurez: 1,
+      estado: "a_validar",
+      insight:
+        "No pudimos leer la home, así que no sabemos por dónde puede contactarte alguien que llega. Queda a validar.",
+      checks: [
+        {
+          tipo: "alerta",
+          titulo: "Vías de contacto sin verificar",
+          detalle: "Sin HTML no se puede contar cuántas formas hay de dejar un dato.",
+        },
+      ],
+    };
+  }
+
+  // Ninguna vía en el HTML inicial NO es "no tiene vías": pueden cargar por JS
+  // o la home puede ser un contenedor vacío. No se afirma ausencia ni se arma
+  // una fuga sobre algo que no pudimos ver.
+  if (c.viasTotal === 0) {
+    const ciego = c.estado === "no_verificable";
+    return {
+      madurez: 2,
+      estado: "a_validar",
+      insight: ciego
+        ? "Tu home se arma con JavaScript y no pudimos ver por dónde te contactan. Lo confirmamos con vos antes de sacar conclusiones."
+        : "No detectamos automáticamente por dónde te contactan desde la home; puede cargar por JavaScript. Lo confirmamos con vos.",
+      checks: [
+        {
+          tipo: "alerta",
+          titulo: "Vías de contacto sin detectar",
+          detalle: ciego
+            ? "El contenido de la home se arma en el navegador, así que no se pudieron verificar el teléfono, el mail, WhatsApp ni el formulario. A confirmar."
+            : "No detectamos teléfono, mail, WhatsApp ni formulario en el HTML inicial de la home. Pueden cargar por JavaScript. A confirmar.",
+        },
+      ],
+    };
+  }
+
+  const vias: Array<[boolean, string, string]> = [
+    [c.telefonoTocable, "Teléfono para tocar", "un enlace tel: que llame solo desde el celular"],
+    [c.mailPublicado, "Mail publicado", "una dirección de mail visible"],
+    [c.whatsapp, "WhatsApp", "un enlace directo a WhatsApp"],
+    [c.formulario, "Formulario", "un formulario para dejar la consulta"],
+  ];
+
+  for (const [presente, titulo, que] of vias) {
+    checks.push(
+      presente
+        ? { tipo: "ok", titulo: `${titulo}: sí`, detalle: `La home tiene ${que}.` }
+        : {
+            tipo: "alerta",
+            titulo: `${titulo}: no detectado`,
+            detalle: `No detectamos ${que} en el HTML inicial de la home; puede cargar por JavaScript. A confirmar.`,
+          },
+    );
+  }
+
+  // Un formulario que no pregunta nada no separa al cliente grande de una
+  // consulta suelta: llega todo mezclado y sin contexto para responder.
+  if (c.formulario && c.camposFormulario.length > 0 && c.camposFormulario.length <= 4) {
+    checks.push({
+      tipo: "alerta",
+      titulo: "El formulario no califica",
+      detalle: `Pide ${c.camposFormulario.length} datos (${c.camposFormulario
+        .map((campo) => campo.nombre)
+        .join(", ")}). No distingue qué tipo de cliente es ni qué necesita.`,
+    });
+  }
+
+  if (!c.contactoEnMenu) {
+    checks.push({
+      tipo: "alerta",
+      titulo: "Contacto no detectado en el menú",
+      detalle:
+        "No detectamos un enlace a contacto en la navegación de la home (el menú puede cargar por JavaScript). A confirmar.",
+    });
+  }
+
+  // Las fugas se apoyan en lo DETECTADO (una sola vía a la vista), nunca en
+  // una vía que no vimos: esa puede existir y cargar por JS.
+  if (c.viasTotal === 1) {
+    fugas.push({
+      titulo: "Una sola vía de contacto a la vista",
+      que_se_pierde:
+        "En la home detectamos una única forma de contactarte. Si las demás no existen, el que prefiere otra no deja el dato; si cargan por JavaScript, conviene confirmarlo.",
+    });
+  }
+
+  const madurez = acotar(c.viasTotal >= 3 ? (c.contactoEnMenu ? 5 : 4) : c.viasTotal + 1);
+
+  return {
+    madurez,
+    estado: madurez >= 4 ? "activo" : "parcial",
+    insight: `Detectamos ${c.viasTotal} de 4 vías de contacto en la home. ${
+      c.viasTotal >= 3
+        ? "Está bien cubierto: el que quiere escribirte, puede."
+        : "Si las otras no existen, sumarlas es de las mejoras más baratas del diagnóstico."
+    }`,
+    checks: recortarChecks(checks),
+  };
+}
+
+/* --------------------------------------------------------------------- orden */
+
+/** Cómo está ordenado el sitio: la pregunta de la auditoría es si las
+ *  secciones están puestas como piensa la empresa o como busca el comprador.
+ *  Con solo la home, lo verificable son los links internos y sus URLs. */
+function evaluarOrden(facts: SiteFacts, fugas: Fuga[]): Canal {
+  const seo = facts.seo;
+  const checks: Check[] = [];
+
+  if (!seo) {
+    return {
+      madurez: 1,
+      estado: "a_validar",
+      insight: "Sin HTML no se puede ver cómo está ordenado el sitio. Queda a validar.",
+      checks: [
+        {
+          tipo: "alerta",
+          titulo: "Estructura sin verificar",
+          detalle: "No se pudieron leer los enlaces internos de la home.",
+        },
+      ],
+    };
+  }
+
+  const total = seo.urlsInternasTotal;
+  const cripticas = seo.urlsCripticas;
+
+  if (total === 0) {
+    checks.push({
+      tipo: "error",
+      titulo: "La home no enlaza a ninguna página interna",
+      detalle:
+        "No se encontraron links internos en el HTML inicial. Ni el comprador ni Google tienen por dónde seguir.",
+    });
+    fugas.push({
+      titulo: "El sitio no tiene por dónde seguir",
+      que_se_pierde:
+        "Desde la home no se llega a ninguna página interna. El que quiere saber más se queda sin camino.",
+    });
+  } else {
+    checks.push({
+      tipo: "ok",
+      titulo: `${total} páginas enlazadas desde la home`,
+      detalle: "Hay estructura interna para recorrer.",
+    });
+  }
+
+  if (cripticas > 0) {
+    const ejemplos = seo.urlsInternas
+      .filter((u) => !u.descriptiva)
+      .slice(0, 3)
+      .map((u) => `/${u.slug} (${u.motivo})`)
+      .join(", ");
+    checks.push({
+      tipo: cripticas >= total / 2 ? "error" : "alerta",
+      titulo: `${cripticas} de ${total} URLs no dicen qué hay adentro`,
+      detalle: `Por ejemplo: ${ejemplos}. Una URL que no se entiende no ayuda a rankear ni da confianza al que la ve.`,
+    });
+  } else if (total > 0) {
+    checks.push({
+      tipo: "ok",
+      titulo: "Las URLs son descriptivas",
+      detalle: "Cada dirección dice qué hay en esa página.",
+    });
+  }
+
+  const madurez = acotar(
+    total === 0 ? 1 : cripticas === 0 ? (total >= 5 ? 5 : 4) : cripticas >= total / 2 ? 2 : 3,
+  );
+
+  return {
+    madurez,
+    estado: total === 0 ? "ausente" : madurez >= 4 ? "activo" : "parcial",
+    insight:
+      total === 0
+        ? "La home no lleva a ninguna parte. Ordenar el sitio por lo que busca el comprador es el primer paso."
+        : `El sitio se recorre a través de ${total} páginas. Lo que queda para la revisión manual es si están ordenadas como busca el comprador o como está organizada la empresa puertas adentro.`,
+    checks: recortarChecks(checks),
+  };
+}
+
+/* -------------------------------------------------------- portada y cierre */
+
+function armarTesis(
+  company: CompanyForAnalysis,
+  facts: SiteFacts,
+  canales: Canales,
+): AnalysisOutput["tesis"] {
+  const nombre = company.name?.trim() || "Tu empresa";
+
+  if (!facts.fetch.ok) {
+    return {
+      titular: "No pudimos entrar a tu sitio.",
+      bajada:
+        "Si a nosotros no nos respondió, hay chances de que a un comprador tampoco. Es lo primero a resolver.",
+    };
+  }
+
+  const vias = facts.contacto?.viasTotal ?? 0;
+  if (vias <= 1) {
+    return {
+      titular: "Tu sitio está online.",
+      bajada:
+        vias === 0
+          ? "Falta confirmar por dónde te llega la consulta."
+          : "Detectamos una sola forma de dejar un dato.",
+    };
+  }
+
+  if (canales.medicion.madurez <= 2) {
+    return {
+      titular: "El sitio recibe consultas.",
+      bajada: "Nadie puede decir de dónde vinieron.",
+    };
+  }
+
+  return {
+    titular: `${nombre} tiene la base armada.`,
+    bajada: "Lo que falta son los detalles que convierten una visita en consulta.",
+  };
+}
+
+/** "Lo que ya tienen": arranca por lo que juega a favor. Puede quedar vacío
+ *  —un sitio caído no tiene activos— y en ese caso la sección no se dibuja. */
+function armarActivos(facts: SiteFacts): Numero[] {
+  const activos: Numero[] = [];
+  const seo = facts.seo;
+  const c = facts.contacto;
+  const t = facts.tracking;
+
+  if (seo && seo.urlsInternasTotal > 0) {
+    activos.push({
+      dato: String(seo.urlsInternasTotal),
+      etiqueta: "Páginas enlazadas desde la home, listas para ordenar por cliente",
+    });
+  }
+  if (seo?.title && !esTitleGenerico(seo.title)) {
+    activos.push({
+      dato: "Título propio",
+      etiqueta: `La home se presenta como "${acortar(seo.title, 60)}"`,
+    });
+  }
+  if (c && c.viasTotal > 0) {
+    activos.push({
+      dato: `${c.viasTotal} de 4`,
+      etiqueta: "Vías de contacto ya presentes en la home",
+    });
+  }
+  if (t?.ga4) {
+    activos.push({
+      dato: "GA4",
+      etiqueta: "Analítica instalada: la base para medir ya está puesta",
+    });
+  }
+  if (facts.tech?.cms) {
+    activos.push({
+      dato: facts.tech.cms,
+      etiqueta: "Plataforma del sitio: se puede editar sin rehacer nada",
+    });
+  }
+  if (facts.dmarc?.exists) {
+    activos.push({ dato: "DMARC", etiqueta: "El dominio está protegido contra suplantación" });
+  }
+
+  return activos.slice(0, 6);
+}
+
+/** El recorrido del comprador DENTRO del sitio. No inventamos de dónde vino:
+ *  no tenemos datos de búsquedas ni de tráfico. */
+function armarRecorrido(facts: SiteFacts): AnalysisOutput["recorrido"] {
+  const c = facts.contacto;
+  const seo = facts.seo;
+
+  if (!facts.fetch.ok) {
+    return [
+      { paso: "LLEGA", detalle: "Alguien entra al sitio con intención de comprar." },
+      {
+        paso: "NO CARGA",
+        detalle: `El sitio no respondió: ${facts.fetch.error ?? "no se pudo cargar"}.`,
+      },
+      { paso: "SE VA", detalle: "Vuelve a Google y entra al de al lado." },
+    ];
+  }
+
+  return [
+    { paso: "LLEGA", detalle: "Alguien entra a la home con intención de comprar." },
+    {
+      paso: "LEE",
+      detalle: seo?.title
+        ? `Lo primero que ve es "${acortar(seo.title, 70)}".`
+        : "La página no tiene título: no hay una primera frase que le diga dónde está.",
+    },
+    {
+      paso: "BUSCA CÓMO",
+      detalle:
+        c && c.viasTotal > 0
+          ? `Encuentra ${c.viasTotal} forma${c.viasTotal > 1 ? "s" : ""} de contactarse.`
+          : "Busca un teléfono, un mail o un formulario. No los detectamos automáticamente en la home.",
+    },
+    {
+      paso: c && c.viasTotal > 0 ? "ESCRIBE" : "A CONFIRMAR",
+      detalle:
+        c && c.viasTotal > 0
+          ? "Deja la consulta. Sin medición, nadie va a saber que llegó por acá."
+          : "Si las vías cargan por JavaScript, escribe. Lo confirmamos con vos.",
+    },
+  ];
+}
+
+/** El Método Qualita, armado a partir de lo que ESTE diagnóstico encontró. El
+ *  orden es fijo: que el sitio reciba, después medir, y pautar al final. */
+function armarPlan(canales: Canales): AnalysisOutput["plan"] {
+  const plan: AnalysisOutput["plan"] = [];
+
+  if (canales.contacto.madurez <= 3) {
+    plan.push({
+      titulo: "Que el sitio deje pedir",
+      detalle:
+        "Teléfono que se toque, mail publicado, WhatsApp y un formulario, visibles en todas las páginas y no en una sola.",
+    });
+  }
+  if (canales.sitio.madurez <= 3) {
+    plan.push({
+      titulo: "Decir qué vendés en la primera pantalla",
+      detalle: "Título, descripción y encabezado que nombren la categoría, no solo la marca.",
+    });
+  }
+  if (canales.orden.madurez <= 3) {
+    plan.push({
+      titulo: "Ordenar el sitio por cliente",
+      detalle:
+        "Una página por lo que el comprador viene a resolver, con URLs que digan qué hay adentro.",
+    });
+  }
+  plan.push({
+    titulo: "Un formulario que separe",
+    detalle:
+      "Que pregunte rubro, tipo de cliente y volumen, para que la consulta grande no entre igual que la suelta.",
+  });
+  if (canales.medicion.madurez <= 4) {
+    plan.push({
+      titulo: "Medir todo en un solo lugar",
+      detalle:
+        "Analítica con un registro por cada consulta y cada clic a WhatsApp. Sin esto no se sabe qué funciona.",
+    });
+  }
+  plan.push({
+    titulo: "Recién ahora, pautar",
+    detalle: "Con una estructura que sabe recibir y medir, el dinero en anuncios rinde. Antes, no.",
+  });
+
+  return plan.slice(0, 6);
+}
+
+function armarCierre(
+  company: CompanyForAnalysis,
+  facts: SiteFacts,
+  canales: Canales,
+): AnalysisOutput["cierre"] {
+  const numeros: Numero[] = [];
+  const c = facts.contacto;
+  const seo = facts.seo;
+  const t = facts.tracking;
+
+  // Sin sitio legible no hay números que sacar del HTML. En vez de inventar
+  // relleno para llegar al mínimo, decimos exactamente eso.
+  if (!facts.fetch.ok) {
+    numeros.push(
+      { dato: "0", etiqueta: "Páginas del sitio que pudimos leer" },
+      { dato: "0 de 4", etiqueta: "Vías de contacto que pudimos verificar" },
+      {
+        dato: facts.inputUrl ? "No responde" : "Sin sitio",
+        etiqueta: facts.inputUrl
+          ? `${facts.inputUrl} no contestó al momento de la verificación`
+          : "La empresa no informó un sitio web para analizar",
+      },
+    );
+  }
+
+  // Solo lo detectado va como número: un "0" grande en pantalla afirma una
+  // ausencia que desde el HTML estático no podemos verificar.
+  if (c && c.viasTotal > 0) {
+    numeros.push({
+      dato: `${c.viasTotal} de 4`,
+      etiqueta: "Vías de contacto detectadas en la home",
+    });
+  }
+  if (seo) {
+    numeros.push({
+      dato: String(seo.urlsInternasTotal),
+      etiqueta: "Páginas enlazadas desde la home",
+    });
+    if (!seo.metaDescription) {
+      numeros.push({
+        dato: "0",
+        etiqueta: "Descripciones para lo que Google muestra debajo del título",
+      });
+    }
+  }
+  if (t && !t.metaPixel) {
+    numeros.push({
+      dato: "Sin píxel",
+      etiqueta: "No se puede volver a alcanzar a quien ya visitó el sitio",
+    });
+  }
+  numeros.push({
+    dato: String(Math.round((promedioMadurez(canales) / 5) * 100)),
+    etiqueta: "Puntaje de arquitectura digital sobre 100",
+  });
+
+  const nombre = company.name?.trim() || "Tu empresa";
+
+  return {
+    titular:
+      (c?.viasTotal ?? 0) === 0
+        ? `${nombre} ya tiene el sitio online. Lo primero es confirmar por dónde le llega la consulta.`
+        : `${nombre} ya tiene con qué. Lo que falta es que el sitio esté a la altura de la empresa.`,
+    numeros: numeros.slice(0, 6),
+  };
+}
+
+function promedioMadurez(canales: Canales): number {
+  const todos = [
+    canales.sitio,
+    canales.contacto,
+    canales.orden,
+    canales.busqueda,
+    canales.medicion,
+  ];
+  return todos.reduce((suma, canal) => suma + canal.madurez, 0) / todos.length;
+}
+
+function acortar(texto: string, largo: number): string {
+  const limpio = texto.trim();
+  return limpio.length <= largo ? limpio : `${limpio.slice(0, largo - 1)}…`;
 }

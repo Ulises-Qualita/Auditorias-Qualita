@@ -1,4 +1,5 @@
 import type { FactsInterno } from "@/lib/consola/facts";
+import { TEXTOS_MEJORAS } from "@/lib/diagnostico/mejorasPageSpeed";
 
 /** Los hechos crudos que juntó el colector, tal como quedaron guardados.
  *
@@ -21,7 +22,7 @@ export function DatosTecnicos({ facts }: { facts: FactsInterno | null | undefine
     );
   }
 
-  const { fetch: descarga, seo, tracking, tech, dmarc, pageSpeed } = facts;
+  const { fetch: descarga, seo, tracking, tech, dmarc, pageSpeed, contacto } = facts;
 
   return (
     <Bloque
@@ -42,11 +43,50 @@ export function DatosTecnicos({ facts }: { facts: FactsInterno | null | undefine
         <Tarjeta titulo="PageSpeed (móvil)">
           {pageSpeed?.disponible ? (
             <>
-              <Dato k="Performance" v={pageSpeed.performance} />
+              {pageSpeed.puntajes ? (
+                <>
+                  <Dato k="Rendimiento" v={pageSpeed.puntajes.rendimiento} />
+                  <Dato k="Accesibilidad" v={pageSpeed.puntajes.accesibilidad} />
+                  <Dato k="Prácticas" v={pageSpeed.puntajes.practicas} />
+                  <Dato k="SEO" v={pageSpeed.puntajes.seo} />
+                </>
+              ) : (
+                <Dato k="Performance" v={pageSpeed.performance} />
+              )}
+              <Dato k="FCP" v={pageSpeed.fcpMs ? `${Math.round(pageSpeed.fcpMs)} ms` : null} />
               <Dato k="LCP" v={pageSpeed.lcpMs ? `${Math.round(pageSpeed.lcpMs)} ms` : null} />
               <Dato k="CLS" v={pageSpeed.cls} />
               <Dato k="TBT" v={pageSpeed.tbtMs ? `${Math.round(pageSpeed.tbtMs)} ms` : null} />
+              <Dato
+                k="Speed Index"
+                v={pageSpeed.speedIndexMs ? `${Math.round(pageSpeed.speedIndexMs)} ms` : null}
+              />
               <Dato k="Medido" v={fechaHora(pageSpeed.medidoEn)} />
+              {pageSpeed.crux ? (
+                <div className="mt-2 border-t border-linea2 pt-2">
+                  <p className="mb-1.5 text-[0.72rem] font-semibold tracking-[0.06em] text-tinta2 uppercase">
+                    Visitantes reales (CrUX, p75)
+                  </p>
+                  <Dato
+                    k="General"
+                    v={pageSpeed.crux.categoria}
+                    nota={pageSpeed.crux.deTodoElDominio ? "dato del dominio entero, no de la home" : undefined}
+                  />
+                  <Dato
+                    k="LCP"
+                    v={pageSpeed.crux.lcpMs == null ? null : `${pageSpeed.crux.lcpMs} ms`}
+                    nota={pageSpeed.crux.lcpCategoria ?? undefined}
+                  />
+                  <Dato
+                    k="INP"
+                    v={pageSpeed.crux.inpMs == null ? null : `${pageSpeed.crux.inpMs} ms`}
+                    nota={pageSpeed.crux.inpCategoria ?? undefined}
+                  />
+                  <Dato k="CLS" v={pageSpeed.crux.cls} nota={pageSpeed.crux.clsCategoria ?? undefined} />
+                </div>
+              ) : (
+                <Dato k="Visitantes reales" v="sin datos (poco tráfico para CrUX)" />
+              )}
             </>
           ) : (
             // El motivo importa tanto como el número: sin esto, "no medido"
@@ -80,6 +120,35 @@ export function DatosTecnicos({ facts }: { facts: FactsInterno | null | undefine
                 : undefined
             }
           />
+        </Tarjeta>
+
+        <Tarjeta titulo="Vías de contacto (home)">
+          <Dato k="Estado" v={contacto?.estado?.replaceAll("_", " ")} />
+          <Dato
+            k="Detectadas"
+            v={contacto?.viasTotal == null ? undefined : `${contacto.viasTotal} de 4`}
+            nota="false = no detectado en el HTML inicial, no ausencia"
+          />
+          <Dato k="Motivo" v={contacto?.motivo} alerta />
+          <Dato k="Widgets JS" v={contacto?.senalesJs?.join(", ")} />
+          <Dato k="Teléfono tocable" v={boolTexto(contacto?.telefonoTocable)} />
+          <Dato k="Teléfonos" v={contacto?.telefonos?.join(", ")} />
+          <Dato k="Mail publicado" v={boolTexto(contacto?.mailPublicado)} />
+          <Dato k="Mails" v={contacto?.mails?.join(", ")} />
+          <Dato k="WhatsApp" v={boolTexto(contacto?.whatsapp)} />
+          <Dato
+            k="Formularios"
+            v={
+              contacto?.formulariosTotal == null
+                ? undefined
+                : String(contacto.formulariosTotal)
+            }
+          />
+          <Dato
+            k="Campos del form"
+            v={contacto?.camposFormulario?.map((campo) => campo.nombre).join(", ")}
+          />
+          <Dato k="Contacto en el menú" v={boolTexto(contacto?.contactoEnMenu)} />
         </Tarjeta>
 
         <Tarjeta titulo="Medición detectada">
@@ -128,6 +197,8 @@ export function DatosTecnicos({ facts }: { facts: FactsInterno | null | undefine
         </Tarjeta>
       </div>
 
+      {pageSpeed?.disponible && pageSpeed.mejoras ? <MejorasPageSpeed mejoras={pageSpeed.mejoras} /> : null}
+
       {facts.warnings?.length ? (
         <div className="mt-4 rounded-card border border-linea bg-bg p-5">
           <p className="text-[0.72rem] font-semibold tracking-[0.06em] text-tinta2 uppercase">
@@ -148,6 +219,69 @@ export function DatosTecnicos({ facts }: { facts: FactsInterno | null | undefine
         Recolectado {fechaHora(facts.collectedAt) ?? "—"} · colector {facts.collectVersion ?? "?"}
       </p>
     </Bloque>
+  );
+}
+
+type MejoraFacts = NonNullable<NonNullable<FactsInterno["pageSpeed"]>["mejoras"]>[number];
+
+const CATEGORIA_PSI: Record<MejoraFacts["categoria"], string> = {
+  rendimiento: "Rendimiento",
+  accesibilidad: "Accesibilidad",
+  practicas: "Prácticas",
+  seo: "SEO",
+};
+
+/** Todas las auditorías que fallaron, con el título técnico de Lighthouse y su
+ *  dato. El cliente ve hasta 6, traducidas; acá va la lista completa y se
+ *  marca cuáles llegan al informe. */
+function MejorasPageSpeed({ mejoras }: { mejoras: MejoraFacts[] }) {
+  return (
+    <div className="mt-4 rounded-card border border-linea bg-card p-5 shadow-qualita">
+      <h3 className="mb-3 text-[0.72rem] font-bold tracking-[0.1em] text-magenta uppercase">
+        PageSpeed · mejoras ({mejoras.length})
+      </h3>
+      {mejoras.length === 0 ? (
+        <p className="text-[0.85rem] text-tinta">Lighthouse no marcó auditorías por debajo de 90.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px] text-left text-[0.82rem]">
+            <thead>
+              <tr className="border-b border-linea text-[0.72rem] text-tinta2">
+                <th className="py-1.5 pr-3 font-semibold">Categoría</th>
+                <th className="py-1.5 pr-3 font-semibold">Auditoría</th>
+                <th className="py-1.5 pr-3 font-semibold">Dato</th>
+                <th className="py-1.5 pr-3 text-right font-semibold">Puntaje</th>
+                <th className="py-1.5 text-right font-semibold">En informe</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mejoras.map((mejora) => (
+                <tr key={`${mejora.categoria}-${mejora.id}`} className="border-b border-linea2 last:border-b-0">
+                  <td className="py-2 pr-3 whitespace-nowrap text-tinta">{CATEGORIA_PSI[mejora.categoria]}</td>
+                  <td className="py-2 pr-3 text-navy">
+                    {mejora.titulo}
+                    <span className="block font-mono text-[0.7rem] text-tinta2">{mejora.id}</span>
+                  </td>
+                  <td className="py-2 pr-3 text-tinta">{mejora.valor ?? "—"}</td>
+                  <td
+                    className={`py-2 pr-3 text-right font-semibold tabular-nums ${
+                      (mejora.puntaje ?? 0) < 50 ? "text-warn" : "text-mid"
+                    }`}
+                  >
+                    {mejora.puntaje ?? "—"}
+                  </td>
+                  <td className="py-2 text-right text-tinta">{TEXTOS_MEJORAS[mejora.id] ? "Sí" : "No"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="mt-3 text-[0.76rem] text-tinta2">
+        &ldquo;No&rdquo; = sin traducción a lenguaje llano en lib/diagnostico/mejorasPageSpeed.ts. El
+        informe muestra hasta 6, sin repetir las que dicen lo mismo.
+      </p>
+    </div>
   );
 }
 

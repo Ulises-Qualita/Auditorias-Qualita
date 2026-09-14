@@ -20,7 +20,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/diagnostics/[id
 
   const { data, error } = await supabase
     .from("diagnostics")
-    .select("status, share_tokens(token)")
+    .select("status, updated_at, share_tokens(token)")
     .eq("id", id)
     .maybeSingle();
 
@@ -31,8 +31,16 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/diagnostics/[id
   // El join viene como objeto o array según cómo infiera el cliente.
   const share = Array.isArray(data.share_tokens) ? data.share_tokens[0] : data.share_tokens;
 
+  // Cuánto lleva en 'analyzing' (runAnalysis pisa updated_at al entrar). Se
+  // calcula acá y no en el browser para no depender del reloj del cliente;
+  // la pantalla de espera lo usa para no reiniciar el progreso al recargar.
+  const transcurridoMs =
+    data.status === "analyzing" && data.updated_at
+      ? Math.max(0, Date.now() - new Date(data.updated_at).getTime())
+      : null;
+
   return NextResponse.json(
-    { status: data.status, token: share?.token ?? null },
+    { status: data.status, token: share?.token ?? null, transcurridoMs },
     // Es un endpoint de polling: cachearlo lo volvería inútil.
     { status: 200, headers: { "cache-control": "no-store" } },
   );

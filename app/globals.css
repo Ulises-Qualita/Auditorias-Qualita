@@ -89,6 +89,45 @@ h1, h2, h3, .disp {
   line-height: 1.1;
 }
 
+/* Láminas del informe del cliente (/d/[token]). Tokens copiados del deck de
+   referencia (docs/referencia-diseno-informe.html) y scopeados acá: no pisan
+   los grises de la consola ni el hero del informe, que queda afuera. */
+/* Ancho del informe. Un solo lugar: lo usan el mazo de láminas, el CTA, el
+   pie y la barra de marca, para que todo quede alineado al mismo borde. */
+:root {
+  --ancho-informe: 1500px;
+}
+
+/* La barra de marca del layout del cliente mide 940px en la landing y el
+   form. En el informe se estira al ancho de las láminas para que el logo
+   quede alineado con su borde. :has() evita que el layout tenga que saber
+   en qué ruta está. */
+.shell-cliente:has(.mazo) .barra-cliente {
+  /* El padding de la barra va DENTRO de su max-width: sin sumarlo, el logo
+     arrancaba 32px más adentro que el borde de las láminas. Y usa el mismo
+     margen lateral que el mazo, para que también coincidan en el celular. */
+  --margen-mazo: clamp(10px, 3vw, 32px);
+  max-width: calc(var(--ancho-informe) + 2 * var(--margen-mazo));
+  padding-inline: var(--margen-mazo);
+}
+
+.lamina {
+  --d-tinta: #5b5d78;
+  --d-tinta2: #9a9cb0;
+  --d-linea: #e8e8ef;
+  --d-cardbg: #f4f4f7;
+  --d-alert: #3a1f38;
+  --d-ring: #cfd0dc;
+  --d-gris: #7a7d9e;
+}
+
+/* Títulos de lámina en Poppins, como el deck, incluido el h1 de la portada.
+   El número del puntaje usa `font-display` (Unbounded) y no lo toca esto. */
+.lamina :is(h1, h2, h3, h4, .disp) {
+  font-family: var(--font-poppins), system-ui, sans-serif;
+  letter-spacing: -.01em;
+}
+
 ::selection {
   background: rgba(181, 12, 197, .15);
 }

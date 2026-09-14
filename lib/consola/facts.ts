@@ -21,7 +21,11 @@ const url = z.object({
   motivo: z.string().nullish(),
 });
 
-const facts = z.looseObject({
+const estadoDeteccion = z.enum(["detectado", "no_detectado_html_inicial", "no_verificable"]);
+
+/** Exportado para `lib/diagnostico/hechos.ts`, que proyecta de acá lo poco que
+ *  el informe público puede mostrar. El esquema completo no sale de servidor. */
+export const facts = z.looseObject({
   collectVersion: z.string().nullish(),
   collectedAt: z.string().nullish(),
   inputUrl: z.string().nullish(),
@@ -53,6 +57,35 @@ const facts = z.looseObject({
       urlsInternas: z.array(url).nullish(),
       urlsInternasTotal: z.number().nullish(),
       urlsCripticas: z.number().nullish(),
+    })
+    .nullish(),
+
+  contacto: z
+    .looseObject({
+      // Tres estados desde collect-1.2.0; los informes viejos no los traen.
+      estado: z.string().nullish(),
+      estados: z
+        .object({
+          telefono: estadoDeteccion,
+          mail: estadoDeteccion,
+          whatsapp: estadoDeteccion,
+          formulario: estadoDeteccion,
+        })
+        .nullish(),
+      motivo: z.string().nullish(),
+      senalesJs: z.array(z.string()).nullish(),
+      telefonoTocable: z.boolean().nullish(),
+      telefonos: z.array(z.string()).nullish(),
+      mailPublicado: z.boolean().nullish(),
+      mails: z.array(z.string()).nullish(),
+      whatsapp: z.boolean().nullish(),
+      formulario: z.boolean().nullish(),
+      formulariosTotal: z.number().nullish(),
+      camposFormulario: z
+        .array(z.looseObject({ nombre: z.string().nullish(), tipo: z.string().nullish() }))
+        .nullish(),
+      viasTotal: z.number().nullish(),
+      contactoEnMenu: z.boolean().nullish(),
     })
     .nullish(),
 
@@ -103,10 +136,47 @@ const facts = z.looseObject({
       disponible: z.boolean().nullish(),
       strategy: z.string().nullish(),
       performance: z.number().nullish(),
+      // Desde collect-1.5.0: las 4 categorías y las mejoras.
+      puntajes: z
+        .looseObject({
+          rendimiento: z.number().nullish(),
+          accesibilidad: z.number().nullish(),
+          practicas: z.number().nullish(),
+          seo: z.number().nullish(),
+        })
+        .nullish(),
+      fcpMs: z.number().nullish(),
       lcpMs: z.number().nullish(),
       cls: z.number().nullish(),
       tbtMs: z.number().nullish(),
+      speedIndexMs: z.number().nullish(),
+      mejoras: z
+        .array(
+          z.looseObject({
+            id: z.string(),
+            categoria: z.enum(["rendimiento", "accesibilidad", "practicas", "seo"]),
+            titulo: z.string(),
+            valor: z.string().nullish(),
+            puntaje: z.number().nullish(),
+            ahorroKb: z.number().nullish(),
+            impacto: z.number().nullish(),
+          }),
+        )
+        .nullish(),
       medidoEn: z.string().nullish(),
+      // Desde collect-1.4.0. Los informes anteriores no lo traen.
+      crux: z
+        .looseObject({
+          categoria: z.string().nullish(),
+          deTodoElDominio: z.boolean().nullish(),
+          lcpMs: z.number().nullish(),
+          lcpCategoria: z.string().nullish(),
+          inpMs: z.number().nullish(),
+          inpCategoria: z.string().nullish(),
+          cls: z.number().nullish(),
+          clsCategoria: z.string().nullish(),
+        })
+        .nullish(),
       motivo: z.string().nullish(),
     })
     .nullish(),

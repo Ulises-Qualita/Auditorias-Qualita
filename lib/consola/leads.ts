@@ -120,12 +120,17 @@ export function gradienteAvatar(nombre: string): string {
   return GRADIENTES[suma % GRADIENTES.length];
 }
 
-/** Los canales con madurez medible. google_ads / meta_ads y el pilar marca
- *  quedan afuera a propósito: el pipeline los marca "a validar" y no tienen
- *  número — inventarles uno rompería la regla anti-invención. */
+/** Los canales con madurez medible, en el mismo orden que el informe.
+ *
+ *  Duplica a propósito la lista de `lib/analysis/schema.ts` en vez de
+ *  importarla: este módulo lo usan componentes cliente, e importar el schema
+ *  arrastraría zod al bundle del browser. Si se agrega un canal, se agrega en
+ *  los dos lados. */
 export const CANALES_MADUREZ = [
   { id: "sitio", label: "Sitio web" },
-  { id: "seo", label: "SEO / Google" },
+  { id: "contacto", label: "Vías de contacto" },
+  { id: "orden", label: "Orden del sitio" },
+  { id: "busqueda", label: "Qué ve Google" },
   { id: "medicion", label: "Medición" },
 ] as const;
 

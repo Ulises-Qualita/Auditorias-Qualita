@@ -17,6 +17,8 @@ import {
   Tile,
   Vacio,
 } from "./_components/ui";
+import { gastoGlobal } from "@/lib/consola/costos";
+import { GastoApi } from "./_components/Costos";
 import { FaviconEmpresa } from "./_components/FaviconEmpresa";
 
 /** Panel de la consola. Todo lo que se ve sale de la base: si hay tres
@@ -28,12 +30,13 @@ export const metadata: Metadata = {
 };
 
 export default async function PanelPage() {
-  const [conteos, promedio, rubros, canales, recientes] = await Promise.all([
+  const [conteos, promedio, rubros, canales, recientes, gasto] = await Promise.all([
     contarLeads(),
     madurezPromedio(),
     rubrosMasDiagnosticados(),
     madurezPorCanal(),
     ultimosNuevos(),
+    gastoGlobal(),
   ]);
 
   const conversion =
@@ -255,6 +258,10 @@ export default async function PanelPage() {
             ))}
           </div>
         </Panel>
+      </div>
+
+      <div className="mt-4">
+        <GastoApi gasto={gasto} />
       </div>
     </>
   );

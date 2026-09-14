@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qualita · Referencia de diseño — Diagnóstico Audifarm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#252851;--dark:#20213f;
+    --magenta:#B50CC5;--coral:#FE6F61;--blanco:#fff;--crema:#FFF4EC;
+    --tinta:#5b5d78;--tinta2:#9a9cb0;--linea:#e8e8ef;--cardbg:#f4f4f7;
+    --grad-cover:linear-gradient(120deg,#241d47 0%,#3a1c66 45%,#a012bf 100%);
+    --alert-bg:#3a1f38;
+    --display:'Poppins',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',system-ui,sans-serif;background:#e7e7ee;color:var(--navy);-webkit-font-smoothing:antialiased;padding:32px 16px}
+  h1,h2,h3,.disp{font-family:var(--display);letter-spacing:-.01em;line-height:1.1}
+  .deck{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+
+  .slide{position:relative;width:100%;aspect-ratio:16/9;border-radius:16px;padding:clamp(34px,4.4vw,58px);
+    box-shadow:0 10px 40px rgba(37,40,81,.12);display:flex;flex-direction:column;gap:clamp(12px,1.6vw,20px)}
+  .slide.light{background:#fff;color:var(--navy)}
+  .slide.dark{background:var(--navy);color:#fff}
+  .slide.grad{background:var(--grad-cover);color:#fff}
+  .body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:clamp(14px,1.8vw,22px);min-height:0}
+
+  .kicker{font-family:'DM Sans';font-weight:700;font-size:clamp(.62rem,.82vw,.78rem);letter-spacing:.15em;text-transform:uppercase;color:var(--magenta)}
+  .slide.dark .kicker{color:var(--coral)}
+  h2.title{font-family:var(--display);font-weight:700;font-size:clamp(1.5rem,3vw,2.6rem);color:var(--navy);line-height:1.14}
+  .slide.dark h2.title{color:#fff}
+  .lead{font-size:clamp(.82rem,1.15vw,1.02rem);color:var(--tinta);max-width:64ch;line-height:1.5}
+  .slide.dark .lead{color:rgba(255,255,255,.74)}
+
+  .foot{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:auto;padding-top:clamp(14px,1.6vw,20px);
+    font-size:clamp(.58rem,.74vw,.74rem);color:var(--tinta2)}
+  .slide.dark .foot{color:rgba(255,255,255,.45)}
+  .logo-mini{display:flex;align-items:center;gap:7px}
+  .logo-mini svg{width:22px;height:22px}
+  .logo-mini .txt{font-family:var(--display);font-weight:700;font-size:.74rem;color:var(--navy);line-height:1}
+  .logo-mini .txt small{font-size:.38rem;letter-spacing:.26em;display:block;margin-top:2px;color:var(--tinta2)}
+
+  .cover{justify-content:center;gap:0}
+  .cover-mark{width:clamp(56px,6vw,88px);height:clamp(56px,6vw,88px);margin-bottom:26px}
+  .cover h1{font-family:var(--display);font-size:clamp(2.4rem,6vw,5rem);font-weight:800;color:#fff;line-height:1;margin:6px 0 0}
+  .cover .sub{font-family:'DM Sans';font-weight:400;font-size:clamp(1.1rem,2.3vw,1.9rem);color:rgba(255,255,255,.92);margin-top:26px;line-height:1.25}
+  .cover .note{font-size:clamp(.74rem,1vw,.92rem);color:rgba(255,255,255,.6);max-width:66ch;margin-top:30px;line-height:1.55}
+  .cover .ver{font-size:clamp(.62rem,.82vw,.8rem);color:rgba(255,255,255,.5);margin-top:34px}
+
+  .cards5{display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(12px,1.4vw,18px)}
+  @media(max-width:720px){.cards5{grid-template-columns:repeat(2,1fr)}}
+  .card{background:var(--cardbg);border-radius:14px;padding:clamp(16px,1.8vw,24px);position:relative}
+  .slide.dark .card{background:rgba(255,255,255,.05)}
+  .cnum{width:clamp(26px,2.4vw,32px);height:clamp(26px,2.4vw,32px);border-radius:50%;background:var(--magenta);color:#fff;font-family:var(--display);font-weight:700;font-size:.82rem;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+  .cnum.coral{background:var(--coral)}
+  .badge-foco{position:absolute;top:clamp(16px,1.8vw,24px);right:clamp(16px,1.8vw,24px);background:var(--coral);color:#fff;font-size:.58rem;font-weight:700;letter-spacing:.1em;padding:4px 10px;border-radius:999px}
+  .card h4{font-family:var(--display);font-weight:600;font-size:clamp(.9rem,1.1vw,1.1rem);color:var(--navy);margin-bottom:10px}
+  .slide.dark .card h4{color:#fff}
+  .card p{font-size:clamp(.72rem,.92vw,.9rem);color:var(--tinta);line-height:1.45}
+  .slide.dark .card p{color:rgba(255,255,255,.66)}
+  .band{background:var(--cardbg);border-radius:14px;padding:clamp(18px,2vw,26px);text-align:center;font-weight:700;color:var(--navy);font-size:clamp(.86rem,1.15vw,1.1rem);line-height:1.4}
+  .slide.dark .band{background:rgba(255,255,255,.06);color:#fff}
+
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(14px,1.6vw,20px)}
+  @media(max-width:720px){.tiles{grid-template-columns:1fr 1fr}}
+  .tile{background:var(--cardbg);border-radius:14px;padding:clamp(18px,2.1vw,28px)}
+  .tile .big{font-family:var(--display);font-weight:700;font-size:clamp(1.7rem,3.4vw,2.9rem);color:var(--magenta);line-height:1}
+  .tile .big.coral{color:var(--coral)}
+  .tile p{font-size:clamp(.72rem,.92vw,.9rem);color:var(--tinta);margin-top:12px;line-height:1.45}
+
+  .flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;align-items:stretch;gap:8px}
+  @media(max-width:720px){.flow{grid-template-columns:1fr}.flow .arrow{display:none}}
+  .fcard{background:rgba(255,255,255,.05);border-radius:14px;padding:clamp(16px,1.9vw,24px)}
+  .fcard.alert{background:var(--alert-bg)}
+  .fcard .ck{font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--coral);margin-bottom:12px}
+  .fcard p{font-size:clamp(.76rem,.98vw,.94rem);color:rgba(255,255,255,.85);line-height:1.45}
+  .fcard.alert p{color:#ff8a7e}
+  .arrow{display:flex;align-items:center;color:rgba(255,255,255,.3);font-size:1.3rem}
+  .kicker-line{font-family:var(--display);font-size:clamp(1.05rem,1.8vw,1.55rem);font-weight:700;color:#fff}
+
+  .matrix{display:grid;grid-template-columns:1.5fr repeat(4,1fr);gap:0 12px;align-items:center;max-width:960px;margin:0 auto;width:100%}
+  .matrix .mh{font-family:var(--display);font-weight:600;font-size:clamp(.68rem,.9vw,.9rem);text-align:center;color:var(--navy);padding-bottom:16px}
+  .matrix .rl{font-size:clamp(.76rem,.98vw,.98rem);color:var(--navy);padding:clamp(9px,1.1vw,13px) 0}
+  .matrix .rl.hot{color:var(--coral);font-weight:600}
+  .matrix .rl .note{color:var(--coral);font-size:.64rem;font-weight:500;margin-left:6px}
+  .dot-cell{display:flex;justify-content:center;padding:clamp(9px,1.1vw,13px) 0}
+  .circ{width:clamp(18px,1.6vw,22px);height:clamp(18px,1.6vw,22px);border-radius:50%;border:2px solid #cfd0dc}
+  .circ.full{background:var(--magenta);border-color:var(--magenta)}
+  .twonotes{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,1.6vw,20px)}
+  @media(max-width:720px){.twonotes{grid-template-columns:1fr}}
+  .note-box{background:var(--cardbg);border-radius:12px;padding:clamp(14px,1.6vw,20px);font-size:clamp(.72rem,.92vw,.9rem);color:var(--tinta);line-height:1.5}
+  .note-box b{color:var(--navy)}
+
+  .rows{display:flex;flex-direction:column;gap:clamp(14px,1.9vw,24px)}
+  .lrow{display:grid;grid-template-columns:clamp(180px,24vw,290px) 1fr;gap:24px;align-items:start}
+  @media(max-width:720px){.lrow{grid-template-columns:1fr;gap:6px}}
+  .lrow .lt{display:flex;align-items:center;gap:12px;font-family:var(--display);font-weight:600;font-size:clamp(.86rem,1.05vw,1.02rem);color:var(--navy)}
+  .slide.dark .lrow .lt{color:#fff}
+  .ldot{width:12px;height:12px;border-radius:50%;flex:none;background:var(--magenta)}
+  .ldot.coral{background:var(--coral)}
+  .ldot.ring{background:var(--magenta)}
+  .ldot.ring-empty{background:transparent;border:2px solid #cfd0dc}
+  .lrow .ld{font-size:clamp(.74rem,.94vw,.92rem);color:var(--tinta);line-height:1.5}
+
+  .arch{display:grid;grid-template-columns:1fr 1fr;gap:clamp(16px,1.8vw,22px)}
+  @media(max-width:720px){.arch{grid-template-columns:1fr}}
+  .abox{border-radius:16px;padding:clamp(20px,2.3vw,32px)}
+  .abox.left{background:rgba(255,255,255,.05)}
+  .abox.right{background:rgba(181,12,197,.14)}
+  .abox .ak{font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:16px}
+  .abox.right .ak{color:var(--coral)}
+  .abox .big{font-family:var(--display);font-weight:600;font-size:clamp(1.1rem,1.9vw,1.6rem);color:#fff;line-height:1.3}
+  .abox .adesc{font-size:clamp(.74rem,.92vw,.9rem);color:rgba(255,255,255,.6);margin-top:18px;line-height:1.5}
+
+  table{width:100%;border-collapse:collapse;font-size:clamp(.72rem,.92vw,.9rem)}
+  thead th{background:var(--navy);color:#fff;text-align:left;padding:clamp(12px,1.3vw,16px);font-family:'DM Sans';font-weight:600;font-size:clamp(.68rem,.86vw,.85rem)}
+  thead th:first-child{border-radius:8px 0 0 0}thead th:last-child{border-radius:0 8px 0 0}
+  tbody td{padding:clamp(11px,1.3vw,16px);border-bottom:1px solid var(--linea);color:var(--navy);vertical-align:top;line-height:1.4}
+  tbody tr:nth-child(even){background:#fafafb}
+  .noap{color:var(--coral);font-weight:600}
+  .rank{color:var(--magenta);font-weight:600}
+  td.you{font-weight:700}
+
+  .darkbar{background:var(--navy);color:#fff;border-radius:14px;padding:clamp(18px,2vw,28px);font-size:clamp(.84rem,1.1vw,1.05rem);line-height:1.5}
+
+  .rep{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(14px,1.6vw,20px)}
+  @media(max-width:720px){.rep{grid-template-columns:1fr}}
+  .rtile{background:var(--cardbg);border-radius:14px;padding:clamp(18px,2.1vw,26px)}
+  .rtile .rbig{font-family:var(--display);font-weight:700;font-size:clamp(1.7rem,3vw,2.5rem);line-height:1;display:flex;align-items:center;gap:8px}
+  .rtile.c1 .rbig{color:var(--coral)}.rtile.c2 .rbig{color:var(--magenta)}.rtile.c3 .rbig{color:var(--coral)}
+  .rtile h5{font-family:var(--display);font-weight:600;font-size:clamp(.76rem,.95vw,.94rem);margin:14px 0 10px;color:var(--navy)}
+  .rtile p{font-size:clamp(.7rem,.86vw,.85rem);color:var(--tinta);line-height:1.45}
+  .repnote{font-size:clamp(.66rem,.82vw,.82rem);color:var(--tinta);line-height:1.5}
+  .repnote b{color:var(--navy)}
+
+  .sumrow{display:grid;grid-template-columns:clamp(150px,19vw,220px) auto 1fr;gap:20px;align-items:center;padding:clamp(7px,.95vw,11px) 0}
+  .sumrow .sn{font-family:var(--display);font-weight:600;font-size:clamp(.8rem,1vw,1rem);color:var(--navy)}
+  .fivedots{display:flex;gap:7px}
+  .fivedots .d{width:clamp(13px,1.15vw,16px);height:clamp(13px,1.15vw,16px);border-radius:50%;border:2px solid #cfd0dc}
+  .fivedots .d.f{border:none}
+  .fivedots .d.mag{background:var(--magenta)}
+  .fivedots .d.cor{background:var(--coral)}
+  .fivedots .d.gray{background:#7a7d9e;border:none}
+  .sumrow .sd{font-size:clamp(.72rem,.9vw,.9rem);color:var(--tinta);line-height:1.4}
+
+  .steps6{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(14px,1.6vw,20px)}
+  @media(max-width:720px){.steps6{grid-template-columns:1fr}}
+  .stepc{background:rgba(255,255,255,.05);border-radius:14px;padding:clamp(18px,2.1vw,26px)}
+  .stepc.hl{background:rgba(181,12,197,.16)}
+  .stepc .snum{font-family:var(--display);font-weight:700;color:var(--magenta);font-size:clamp(.95rem,1.2vw,1.15rem);margin-bottom:10px}
+  .stepc h4{font-family:var(--display);font-weight:600;font-size:clamp(.9rem,1.08vw,1.08rem);color:#fff;margin-bottom:10px}
+  .stepc p{font-size:clamp(.7rem,.88vw,.87rem);color:rgba(255,255,255,.66);line-height:1.45}
+  .closer{font-family:var(--display);font-weight:700;color:#fff;font-size:clamp(1.05rem,1.7vw,1.5rem);line-height:1.25}
+
+  @media print{
+    body{background:#fff;padding:0}
+    .deck{gap:0;max-width:none}
+    .slide{box-shadow:none;border-radius:0;page-break-after:always}
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <linearGradient id="qg" x1="6" y1="6" x2="42" y2="42" gradientUnits="userSpaceOnUse"><stop stop-color="#FE6F61"/><stop offset="1" stop-color="#B50CC5"/></linearGradient>
+</defs></svg>
+
+<div class="deck">
+
+  <!-- 1 · PORTADA -->
+  <section class="slide grad cover">
+    <svg class="cover-mark" viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg>
+    <span class="kicker" style="color:#fff">Qualita Studio · Diagnóstico digital</span>
+    <h1>Audifarm Salud</h1>
+    <div class="sub">Google ya te manda la consulta.<br>El problema es dónde cae.</div>
+    <p class="note">Todo lo que sigue está verificado uno por uno: el código del sitio, lo que devuelve Google, los anuncios de la competencia, las redes y la ficha de Google. Sin estimaciones.</p>
+    <div class="ver">Verificado el 1 de septiembre de 2026</div>
+  </section>
+
+  <!-- 2 · POR DÓNDE MIRAMOS -->
+  <section class="slide light">
+    <span class="kicker">Por dónde miramos</span>
+    <h2 class="title">Las cinco puertas por donde entra una consulta</h2>
+    <p class="lead">El sitio es donde termina cayendo todo lo que generan los otros cuatro. Por eso es donde pusimos la lupa más fuerte.</p>
+    <div class="body">
+      <div class="cards5">
+        <div class="card"><div class="cnum coral">1</div><span class="badge-foco">FOCO</span><h4>Sitio web</h4><p>Cómo está armado y si deja pedir un presupuesto</p></div>
+        <div class="card"><div class="cnum">2</div><h4>Google</h4><p>Qué aparece cuando alguien busca el servicio</p></div>
+        <div class="card"><div class="cnum">3</div><h4>Google Ads</h4><p>Quién le está comprando el clic a quién</p></div>
+        <div class="card"><div class="cnum">4</div><h4>Meta Ads</h4><p>Quién pauta en Instagram y Facebook</p></div>
+        <div class="card"><div class="cnum">5</div><h4>Redes y ficha</h4><p>La comunidad real y lo que se ve de la marca</p></div>
+      </div>
+      <div class="band">Y una sexta cosa que cruza a todas: la medición. Si no se mide, ninguna de las cinco se puede corregir.</div>
+    </div>
+    <div class="foot"><span>Qualita Studio para Audifarm Salud · hola@qualita.studio</span><span class="logo-mini"><svg viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg><span class="txt">qualita<small>STUDIO</small></span></span></div>
+  </section>
+
+  <!-- 3 · LO QUE YA TIENEN -->
+  <section class="slide light">
+    <span class="kicker">Lo que ya tienen</span>
+    <h2 class="title">Nada de esto hay que construirlo de cero</h2>
+    <p class="lead">Estos seis activos ya existen y están verificados. El problema no es lo que falta: es que lo que hay no está conectado entre sí.</p>
+    <div class="body">
+      <div class="tiles">
+        <div class="tile"><div class="big">64.800</div><p>Seguidores en Instagram, con 651 publicaciones y contenido propio todas las semanas</p></div>
+        <div class="tile"><div class="big">4.185</div><p>Seguidores en LinkedIn. Farmalink, el competidor mejor rankeado, tiene 2.576</p></div>
+        <div class="tile"><div class="big">79</div><p>Reseñas reales acumuladas en Google entre sus dos fichas</p></div>
+        <div class="tile"><div class="big">ISO 9001</div><p>Certificación de calidad, red nacional de farmacias y sedes en CABA y Córdoba</p></div>
+        <div class="tile"><div class="big">2º</div><p>El puesto que Google ya le da en su categoría más rentable</p></div>
+        <div class="tile"><div class="big">2026</div><p>El portal de clientes está vivo y con la documentación al día</p></div>
+      </div>
+    </div>
+    <div class="foot"><span>Qualita Studio para Audifarm Salud · hola@qualita.studio</span><span class="logo-mini"><svg viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg><span class="txt">qualita<small>STUDIO</small></span></span></div>
+  </section>
+
+  <!-- 4 · EL RECORRIDO -->
+  <section class="slide dark">
+    <span class="kicker">El recorrido</span>
+    <h2 class="title">Un director de obra social busca proveedor. ¿Dónde deja el dato?</h2>
+    <div class="body">
+      <div class="flow">
+        <div class="fcard"><div class="ck">Busca</div><p>Escribe en Google "empresas de auditoría farmacéutica para obras sociales"</p></div>
+        <div class="arrow">›</div>
+        <div class="fcard"><div class="ck">Encuentra</div><p>Audifarm sale 2ª. Google la nombra entre las tres principales del país</p></div>
+        <div class="arrow">›</div>
+        <div class="fcard"><div class="ck">Hace clic</div><p>Google no lo lleva a la página de Auditoría. Lo lleva a "Nosotros"</p></div>
+        <div class="arrow">›</div>
+        <div class="fcard alert"><div class="ck">Se va</div><p>Ahí no hay formulario, ni teléfono para tocar, ni mail, ni WhatsApp</p></div>
+      </div>
+      <div class="kicker-line">La demanda ya llega. Se pierde en el último metro.</div>
+    </div>
+    <div class="foot"><span>Qualita Studio para Audifarm Salud · hola@qualita.studio</span><span class="logo-mini"><svg viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg></span></div>
+  </section>
+
+  <!-- 5 · EL SITIO · matriz -->
+  <section class="slide light">
+    <span class="kicker">El sitio</span>
+    <h2 class="title">En todo el sitio hay una sola forma de dejar un dato</h2>
+    <p class="lead">Contamos, página por página, cuántas maneras hay de contactarse. Círculo lleno = existe. Círculo vacío = no existe.</p>
+    <div class="body">
+      <div class="matrix">
+        <div></div><div class="mh">Formulario</div><div class="mh">Teléfono<br>para tocar</div><div class="mh">Mail</div><div class="mh">WhatsApp</div>
+        <div class="rl">Inicio</div><div class="dot-cell"><div class="circ"></div></div><div class="dot-cell"><div class="circ"></div></div><div class="dot-cell"><div class="circ"></div></div><div class="dot-cell"><div class="circ"></div></div>
+        <div class="rl hot">Nosotros <span class="note">← acá cae la búsqueda que más vale</span></div><div class="dot-cell"><div class="circ"></div></div><div class="dot-cell"><div class="circ"></div></div><div class="dot-cell"><div class="circ"></div></div><div class="dot-cell"><div class="circ"></div></div>
+        <div class="rl">Droguería</div><div class="dot-cell"><div class="circ full"></div></div><div class="dot-cell"><div class="circ"></div></div><div class="dot-cell"><div class="circ"></div></div><div class="dot-cell"><div class="circ full"></div></div>
+        <div class="rl">Auditoría</div><div class="dot-cell"><div class="circ"></div></div><div class="dot-cell"><div class="circ"></div></div><div class="dot-cell"><div class="circ"></div></div><div class="dot-cell"><div class="circ"></div></div>
+        <div class="rl">Farmacia</div><div class="dot-cell"><div class="circ"></div></div><div class="dot-cell"><div class="circ"></div></div><div class="dot-cell"><div class="circ"></div></div><div class="dot-cell"><div class="circ"></div></div>
+        <div class="rl">Laboratorios</div><div class="dot-cell"><div class="circ"></div></div><div class="dot-cell"><div class="circ"></div></div><div class="dot-cell"><div class="circ"></div></div><div class="dot-cell"><div class="circ"></div></div>
+      </div>
+      <div class="twonotes">
+        <div class="note-box"><b>Un formulario y un WhatsApp, los dos en Droguería.</b> Ni un solo teléfono que se pueda tocar desde el celular, y ningún mail publicado en todo el sitio.</div>
+        <div class="note-box">El formulario de Droguería pide nombre, institución, mail y mensaje. No pregunta si es una obra social o una gerenciadora, ni por qué tratamiento, ni por cuántos afiliados.</div>
+      </div>
+    </div>
+    <div class="foot"><span>Qualita Studio para Audifarm Salud · hola@qualita.studio</span><span class="logo-mini"><svg viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg><span class="txt">qualita<small>STUDIO</small></span></span></div>
+  </section>
+
+  <!-- 6 · EL SITIO · dejó de escribirse -->
+  <section class="slide light">
+    <span class="kicker">El sitio</span>
+    <h2 class="title">El sitio dejó de escribirse en 2021</h2>
+    <p class="lead">Cinco cosas que hoy le cuestan credibilidad a una empresa que trabaja con obras sociales.</p>
+    <div class="body">
+      <div class="rows">
+        <div class="lrow"><div class="lt"><span class="ldot coral"></span>El texto tiene once años</div><div class="ld">La home todavía dice: "Desde 2014 somos sponsor de Independiente. En 2015, nuestro compromiso con el Club sigue creciendo." Y la Fundación "se está creando" desde 2021.</div></div>
+        <div class="lrow"><div class="lt"><span class="ldot coral"></span>La primera pantalla se ve en blanco</div><div class="ld">El video de portada pesa 7,3 MB, es de 2021 y nunca termina de cargar. Como el logo es blanco y va encima, tampoco se ve la marca.</div></div>
+        <div class="lrow"><div class="lt"><span class="ldot"></span>Contacto no está en el menú</div><div class="ld">La página de contacto existe y tiene los dos WhatsApp reales. No se puede llegar desde ninguna parte del sitio. Al portal de clientes, tampoco.</div></div>
+        <div class="lrow"><div class="lt"><span class="ldot"></span>Dos números para lo mismo</div><div class="ld">La home dice "más de 200 farmacias". La página de Auditoría dice "una red de 500 farmacias".</div></div>
+        <div class="lrow"><div class="lt"><span class="ldot"></span>Google no sabe qué ofrecen</div><div class="ld">Ninguna página tiene la descripción que Google muestra debajo del título. Y al compartir el sitio en LinkedIn o WhatsApp no aparece ninguna vista previa.</div></div>
+      </div>
+    </div>
+    <div class="foot"><span>Qualita Studio para Audifarm Salud · hola@qualita.studio</span><span class="logo-mini"><svg viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg><span class="txt">qualita<small>STUDIO</small></span></span></div>
+  </section>
+
+  <!-- 7 · ARQUITECTURA -->
+  <section class="slide dark">
+    <span class="kicker">Arquitectura</span>
+    <h2 class="title">La forma correcta de ordenar el sitio ya existe. Está escondida.</h2>
+    <p class="lead">El sitio público se ordena por las divisiones internas de Audifarm. El portal de clientes se ordena por tipo de cliente. Mismo negocio, dos lógicas opuestas.</p>
+    <div class="body">
+      <div class="arch">
+        <div class="abox left"><div class="ak">El sitio público · ordenado como piensa la empresa</div><div class="big">Droguería · Auditoría<br>Farmacia · Laboratorios</div><div class="adesc">Cuatro divisiones internas. Ninguna coincide con la forma en que se presenta el que va a firmar.</div></div>
+        <div class="abox right"><div class="ak">El portal de clientes · ordenado como busca el comprador</div><div class="big">Obra social · Prepaga · Gerenciadora<br>Sanatorio · Laboratorio · Farmacia</div><div class="adesc">Exactamente las categorías con las que se presenta el cliente. Está detrás de una página que no figura en el menú.</div></div>
+      </div>
+      <div class="kicker-line">No hay que inventarla. Hay que sacarla a la superficie.</div>
+    </div>
+    <div class="foot"><span>Qualita Studio para Audifarm Salud · hola@qualita.studio</span><span class="logo-mini"><svg viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg></span></div>
+  </section>
+
+  <!-- 8 · GOOGLE -->
+  <section class="slide light">
+    <span class="kicker">Google</span>
+    <h2 class="title">Dónde aparece y dónde no</h2>
+    <p class="lead">Buscamos en Google Argentina con las palabras que usaría el comprador, no con el nombre de la marca.</p>
+    <div class="body">
+      <table>
+        <thead><tr><th>Lo que escribe el comprador</th><th>Audifarm</th><th>Quién se queda con ese lugar</th></tr></thead>
+        <tbody>
+          <tr><td>"droguería medicamentos alta complejidad obras sociales"</td><td class="noap">No aparece</td><td>Sudlatin 1º · Nueva Ricamon 2º · Redfarm 5º</td></tr>
+          <tr><td>"auditoría de farmacias para obras sociales"</td><td class="noap">No aparece</td><td>Colfarma 1º · Farmalink 2º · ACAFOR 8º</td></tr>
+          <tr><td>"gerenciamiento de la prestación farmacéutica"</td><td class="noap">No aparece</td><td>COQ Salud · Colfarma · REDSOM</td></tr>
+          <tr><td>"empresas de auditoría farmacéutica para obras sociales"</td><td class="rank">2º — pero con "Nosotros"</td><td>Preserfar 1º · CSF 4º · Farmalink 9º</td></tr>
+        </tbody>
+      </table>
+      <div class="twonotes">
+        <div class="note-box"><b>Buscando la marca exacta, Google devuelve ocho resultados en toda la página. Uno solo es del sitio de Audifarm.</b> Los demás son Instagram (tres veces), LinkedIn y directorios de terceros.</div>
+        <div class="note-box"><b style="color:var(--magenta)">¿Por qué Sudlatin sale primero y Audifarm no?</b> Porque su sitio tiene una página por tratamiento y el título dice "Droguería especializada en medicamentos de alto costo". Audifarm lo tiene todo en un párrafo de una sola página.</div>
+      </div>
+    </div>
+    <div class="foot"><span>Qualita Studio para Audifarm Salud · hola@qualita.studio</span><span class="logo-mini"><svg viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg><span class="txt">qualita<small>STUDIO</small></span></span></div>
+  </section>
+
+  <!-- 9 · RESPUESTAS DE GOOGLE CON IA -->
+  <section class="slide dark">
+    <span class="kicker">Las respuestas de Google con IA</span>
+    <h2 class="title">La prueba de que esto se arregla escribiendo</h2>
+    <p class="lead">Google ya responde con un resumen hecho por inteligencia artificial. Comparamos las dos categorías donde Audifarm compite.</p>
+    <div class="body">
+      <div class="arch">
+        <div class="abox left"><div class="ak" style="color:var(--coral)">Droguería de alto costo</div><div class="big">La IA nombra ocho empresas. Audifarm no está.</div><div class="adesc">Droguería del Sud · Rosfar · Kellerhoff · Helios Pharma · Droguería Express · Biosalud · Sudlatin · Itatí. Y cierra preguntando: "¿es para una obra social o para un paciente?" — el segmento exacto de Audifarm.</div></div>
+        <div class="abox left"><div class="ak">Auditoría farmacéutica</div><div class="big">La IA nombra tres. Audifarm es la segunda.</div><div class="adesc">"Las principales son Farmalink, Audifarm Salud y Preserfar." Y la describe con las mismas palabras del párrafo de "Nosotros". Un solo párrafo alcanzó para entrar en el podio del país.</div></div>
+      </div>
+      <div class="kicker-line">No es un problema de tamaño ni de prestigio: faltan páginas.</div>
+    </div>
+    <div class="foot"><span>Qualita Studio para Audifarm Salud · hola@qualita.studio</span><span class="logo-mini"><svg viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg></span></div>
+  </section>
+
+  <!-- 10 · MEDICIÓN -->
+  <section class="slide light">
+    <span class="kicker">Medición</span>
+    <h2 class="title">Nadie puede decir de dónde vino la última consulta</h2>
+    <p class="lead">Las cinco piezas que hacen falta para saberlo. Punto lleno = está. Punto vacío = falta.</p>
+    <div class="body">
+      <div class="rows">
+        <div class="lrow"><div class="lt"><span class="ldot ring"></span>Analítica del sitio</div><div class="ld">Google Analytics está instalado. Es lo único que hay.</div></div>
+        <div class="lrow"><div class="lt"><span class="ldot ring-empty"></span><span style="color:var(--coral)">Etiquetas de eventos</span></div><div class="ld">Sin ellas no se puede saber cuántos formularios se enviaron ni cuántos clics fue a WhatsApp.</div></div>
+        <div class="lrow"><div class="lt"><span class="ldot ring-empty"></span><span style="color:var(--coral)">Píxel de Instagram y Facebook</span></div><div class="ld">64.800 seguidores y no se puede volver a alcanzar a ninguno.</div></div>
+        <div class="lrow"><div class="lt"><span class="ldot ring-empty"></span><span style="color:var(--coral)">Medición del portal de clientes</span></div><div class="ld">Donde el cliente elige su tipo de entidad y abre la cuenta no se registra absolutamente nada.</div></div>
+        <div class="lrow"><div class="lt"><span class="ldot ring-empty"></span><span style="color:var(--coral)">Protección del correo</span></div><div class="ld">El dominio no está protegido contra suplantación y tampoco recibe avisos. Nadie sabe si alguien manda mails haciéndose pasar por Audifarm.</div></div>
+      </div>
+      <div class="band" style="text-align:left">Medir va antes que pautar. Encender anuncios sin medición es invertir a ciegas.</div>
+    </div>
+    <div class="foot"><span>Qualita Studio para Audifarm Salud · hola@qualita.studio</span><span class="logo-mini"><svg viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg><span class="txt">qualita<small>STUDIO</small></span></span></div>
+  </section>
+
+  <!-- 11 · REPUTACIÓN -->
+  <section class="slide light">
+    <span class="kicker">Lo que se ve de la marca</span>
+    <h2 class="title">La reputación no tiene dueño</h2>
+    <p class="lead">Las dos fichas de Google de Audifarm están sin reclamar. Eso significa que nadie de la empresa puede editarlas ni responder reseñas.</p>
+    <div class="body">
+      <div class="rep">
+        <div class="rtile c1"><div class="rbig">2,3 ★</div><h5>Ficha corporativa · 4 reseñas</h5><p>Google la tiene clasificada como "fabricante de equipamiento médico". Sin teléfono, sin fotos y con la altura equivocada.</p></div>
+        <div class="rtile c2"><div class="rbig">3,6 ★</div><h5>Farmacia Audifarm · 75 reseñas</h5><p>Reputación real, con volumen, construida durante años. También sin reclamar, y apuntando al dominio viejo.</p></div>
+        <div class="rtile c3"><div class="rbig">Sin ficha</div><h5>Córdoba</h5><p>Google Maps directamente no encuentra la sede. La segunda ciudad del país es invisible en las búsquedas locales.</p></div>
+      </div>
+      <div class="darkbar">79 reseñas que la empresa no controla, no responde y no puede corregir. Reclamar las dos fichas es lo que más devuelve por menos esfuerzo de todo este diagnóstico.</div>
+      <p class="repnote">En LinkedIn, donde el comprador averigua, la descripción de la empresa dice —en inglés y por defecto— <b>"Audifarm salud S.A. is a company based out of Argentina."</b></p>
+    </div>
+    <div class="foot"><span>Qualita Studio para Audifarm Salud · hola@qualita.studio</span><span class="logo-mini"><svg viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg><span class="txt">qualita<small>STUDIO</small></span></span></div>
+  </section>
+
+  <!-- 12 · COMPETENCIA -->
+  <section class="slide light">
+    <span class="kicker">La competencia</span>
+    <h2 class="title">Dónde está la vara del mercado</h2>
+    <p class="lead">Competidores verificados uno por uno: mismo negocio, mismo cliente institucional argentino.</p>
+    <div class="body">
+      <table>
+        <thead><tr><th>Empresa</th><th>Anuncios en Google</th><th>Anuncios en Meta</th><th>En las búsquedas</th><th>Qué hace distinto en su sitio</th></tr></thead>
+        <tbody>
+          <tr><td class="you">Audifarm</td><td>0</td><td>0</td><td class="noap">Sólo 2º en auditoría</td><td>Congelado en 2021 · una sola vía de contacto · sin descripciones para Google</td></tr>
+          <tr><td>Farmalink</td><td>0</td><td>0</td><td class="rank">2º en auditoría</td><td>Clientes, Contacto e "Ingresar al portal" en el menú principal</td></tr>
+          <tr><td>Sudlatin</td><td>0</td><td>s/d</td><td class="rank">1º en droguería</td><td>Una página por tratamiento · teléfonos y mails para tocar en la home</td></tr>
+          <tr><td>CSF</td><td>0</td><td>s/d</td><td class="rank">4º en auditoría</td><td>Muestra la prueba de entrada: "40 años · más de 8.000 farmacias"</td></tr>
+          <tr><td>Preserfar</td><td>s/d</td><td>s/d</td><td class="rank">1º en auditoría</td><td>Se posiciona por tecnología: receta electrónica y validación online</td></tr>
+        </tbody>
+      </table>
+      <div class="twonotes">
+        <div class="note-box" style="background:#fdeee9"><b style="color:var(--coral)">LO URGENTE</b> Cada búsqueda que Google resuelve sin nombrar a Audifarm es una licitación a la que no la invitaron. No pierde por precio: pierde antes, cuando arman la lista corta.</div>
+        <div class="note-box" style="background:#f6e9fb"><b style="color:var(--magenta)">LO QUE ESTÁ LIBRE</b> Nadie en el sector pauta y a casi todos les faltan piezas básicas. El primero que ordene su sitio se queda con el rubro entero, y Audifarm tiene con qué.</div>
+      </div>
+    </div>
+    <div class="foot"><span>Qualita Studio para Audifarm Salud · hola@qualita.studio</span><span class="logo-mini"><svg viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg><span class="txt">qualita<small>STUDIO</small></span></span></div>
+  </section>
+
+  <!-- 13 · RESUMEN -->
+  <section class="slide light">
+    <span class="kicker">Resumen</span>
+    <h2 class="title">Cómo está cada canal, de un vistazo</h2>
+    <p class="lead">Cinco puntos = profesional y sostenido. Un punto = no existe o está roto.</p>
+    <div class="body">
+      <div>
+        <div class="sumrow"><span class="sn">Sitio web</span><span class="fivedots"><i class="d f cor"></i><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i></span><span class="sd">Una sola vía de contacto, y no está donde cae la búsqueda que más vale</span></div>
+        <div class="sumrow"><span class="sn">Ficha de Google</span><span class="fivedots"><i class="d f cor"></i><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i></span><span class="sd">Dos fichas sin dueño, categoría equivocada y Córdoba sin ficha</span></div>
+        <div class="sumrow"><span class="sn">Anuncios en Google</span><span class="fivedots"><i class="d f gray"></i><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i></span><span class="sd">Nadie del sector pauta. No urge hoy: es espacio guardado</span></div>
+        <div class="sumrow"><span class="sn">Anuncios en Meta</span><span class="fivedots"><i class="d f gray"></i><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i></span><span class="sd">Sin píxel no se puede ni recuperar a quien ya visitó el sitio</span></div>
+        <div class="sumrow"><span class="sn">Búsquedas en Google</span><span class="fivedots"><i class="d f mag"></i><i class="d f mag"></i><i class="d"></i><i class="d"></i><i class="d"></i></span><span class="sd">Rankea 2º en su mejor categoría, pero con la página equivocada</span></div>
+        <div class="sumrow"><span class="sn">Respuestas con IA</span><span class="fivedots"><i class="d f mag"></i><i class="d f mag"></i><i class="d"></i><i class="d"></i><i class="d"></i></span><span class="sd">Entre las tres principales del país en auditoría; ausente en droguería</span></div>
+        <div class="sumrow"><span class="sn">Redes sociales</span><span class="fivedots"><i class="d f mag"></i><i class="d f mag"></i><i class="d"></i><i class="d"></i><i class="d"></i></span><span class="sd">Producción buena y sostenida, con 0,003% de interacción y sin salida</span></div>
+        <div class="sumrow"><span class="sn">Medición</span><span class="fivedots"><i class="d f mag"></i><i class="d f mag"></i><i class="d"></i><i class="d"></i><i class="d"></i></span><span class="sd">Sólo analítica básica; el momento de mayor valor no se registra</span></div>
+      </div>
+    </div>
+    <div class="foot"><span>Qualita Studio para Audifarm Salud · hola@qualita.studio</span><span class="logo-mini"><svg viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg><span class="txt">qualita<small>STUDIO</small></span></span></div>
+  </section>
+
+  <!-- 14 · LOS SEIS PASOS -->
+  <section class="slide dark">
+    <span class="kicker">Cómo lo ordenamos</span>
+    <h2 class="title">Los seis pasos, en orden</h2>
+    <p class="lead">El orden importa: cada paso necesita que el anterior esté hecho.</p>
+    <div class="body">
+      <div class="steps6">
+        <div class="stepc"><div class="snum">01</div><h4>Ordenar el sitio por cliente</h4><p>Una página para obras sociales, otra para prepagas, otra para gerenciadoras. Como ya está armado el portal.</p></div>
+        <div class="stepc"><div class="snum">02</div><h4>Que el sitio deje pedir</h4><p>Una sola vía de consulta, visible en todas las páginas. Teléfonos que se toquen y un WhatsApp que funcione.</p></div>
+        <div class="stepc"><div class="snum">03</div><h4>Medir todo en un solo lugar</h4><p>Sitio y portal en la misma analítica, con un registro de cada consulta y cada clic a WhatsApp.</p></div>
+        <div class="stepc"><div class="snum">04</div><h4>Un formulario que separe</h4><p>Que pregunte tipo de entidad, tratamiento y cantidad de afiliados. Que la obra social nacional no entre igual que una consulta suelta.</p></div>
+        <div class="stepc"><div class="snum">05</div><h4>Poner la casa en orden</h4><p>Reclamar las dos fichas de Google, arreglar LinkedIn y contar en la home la trayectoria, la ISO y las reseñas.</p></div>
+        <div class="stepc hl"><div class="snum">06</div><h4>Recién ahora, pautar</h4><p>Con una estructura que sabe recibir, medir y convertir, el dinero en anuncios rinde. Antes, no.</p></div>
+      </div>
+      <div class="closer">La publicidad es el último paso, no el primero.</div>
+    </div>
+    <div class="foot"><span>Qualita Studio para Audifarm Salud · hola@qualita.studio</span><span class="logo-mini"><svg viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg></span></div>
+  </section>
+
+  <!-- 15 · EN UNA PÁGINA -->
+  <section class="slide light">
+    <span class="kicker">En una página</span>
+    <h2 class="title">La demanda ya se genera. El retorno se define en el sitio.</h2>
+    <div class="body">
+      <div class="tiles">
+        <div class="tile"><div class="big">2º</div><p>El puesto que Google ya le da en su categoría más rentable</p></div>
+        <div class="tile"><div class="big coral">1</div><p>Formas de contactarse en todo el sitio — y no está donde cae esa búsqueda</p></div>
+        <div class="tile"><div class="big coral">0</div><p>Teléfonos para tocar, mails publicados y píxeles instalados</p></div>
+        <div class="tile"><div class="big coral">79</div><p>Reseñas que la empresa no controla ni puede responder</p></div>
+        <div class="tile"><div class="big">64.800</div><p>Seguidores que reciben contenido y no tienen a dónde ir</p></div>
+        <div class="tile"><div class="big">0</div><p>Competidores pautando: el espacio está libre para el que ordene primero</p></div>
+      </div>
+      <div class="darkbar">Audifarm no tiene un problema de demanda. Tiene un sitio que no está a la altura de la empresa, y una consulta que llega hasta la puerta y no encuentra el timbre.</div>
+    </div>
+    <div class="foot"><span>Qualita Studio para Audifarm Salud · hola@qualita.studio</span><span class="logo-mini"><svg viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg><span class="txt">qualita<small>STUDIO</small></span></span></div>
+  </section>
+
+  <!-- 16 · CIERRE -->
+  <section class="slide grad cover">
+    <svg class="cover-mark" viewBox="0 0 48 48" fill="none"><path d="M38 24a14 14 0 1 0-8 12.6" stroke="url(#qg)" stroke-width="8" stroke-linecap="round"/><path d="M25 22c5-1 9 2 11 8-6 2-11-1-13-6 0 0 1-1.5 2-2Z" fill="url(#qg)"/></svg>
+    <h1 style="font-size:clamp(1.9rem,4.4vw,3.6rem)">Qualita Studio para Audifarm Salud</h1>
+    <div class="sub" style="font-size:clamp(1rem,1.6vw,1.4rem);margin-top:24px">hola@qualita.studio</div>
+    <p class="note">Cómo se verificó: inspección del código del sitio y del correo · Centro de Transparencia de Google Ads · Biblioteca de Anuncios de Meta · búsquedas en Google Argentina · perfiles públicos y Google Maps · Google Noticias. Sin cifras de inversión ni de resultados: esos datos no son públicos y requieren acceso a las cuentas.</p>
+    <div class="ver">1 de septiembre de 2026</div>
+  </section>
+
+</div>
+</body>
+</html>
