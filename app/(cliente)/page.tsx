@@ -20,7 +20,7 @@ export default function Landing() {
           <Kicker>Autodiagnóstico digital · gratis</Kicker>
 
           <h1 className="font-display mt-[18px] max-w-[16ch] text-[clamp(2.1rem,5vw,3.4rem)] leading-[1.03] font-bold">
-            ¿Dónde se te escapan las consultas?
+            Conocé tu presencia digital.
           </h1>
 
           <p className="mt-4 max-w-[52ch] text-[1.05rem] text-white/75">
