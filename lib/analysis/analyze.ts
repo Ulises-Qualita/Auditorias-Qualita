@@ -20,8 +20,12 @@ import { computeScores } from "./score";
  *  1.5.0: la velocidad en celular (PageSpeed, con CrUX si hay) entra al
  *  informe como check de "sitio" y pone tope 3 si es mala.
  *  1.6.0: PageSpeed tiene lámina propia (4 puntajes + mejoras, armada por
- *  código); el modelo ya no hace el check de velocidad para no repetirla. */
-export const ANALYSIS_VERSION = "analysis-1.6.0";
+ *  código); el modelo ya no hace el check de velocidad para no repetirla.
+ *  1.7.0: el form pide localidad en vez de provincia, así que el dato de zona
+ *  que entra al prompt pasó de "Buenos Aires" a "Bahía Blanca, Buenos Aires"
+ *  (misma columna `province`, distinto grano). Cambia qué tan local puede ser
+ *  la lectura del sector. */
+export const ANALYSIS_VERSION = "analysis-1.7.0";
 
 /** Queda guardado en `diagnostics.method_version`: dice con qué recolección y
  *  con qué prompt se generó este informe. Sin esto, un informe viejo no se

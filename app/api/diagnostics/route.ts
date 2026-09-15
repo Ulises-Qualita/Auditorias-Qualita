@@ -10,19 +10,32 @@ export const runtime = "nodejs";
 // como red de seguridad, no porque haga falta.
 export const maxDuration = 60;
 
+/** String obligatorio con UN solo mensaje: zod distingue "no vino el campo"
+ *  (error de tipo) de "vino vacío" (error de longitud), y al usuario le da lo
+ *  mismo. Sin esto, el campo ausente devuelve "expected string, received
+ *  undefined", que no se puede mostrar. */
+const obligatorio = (mensaje: string) => z.string({ error: mensaje }).trim().min(1, mensaje);
+
 // Validación de lo que manda el form (paso 1 + contacto del paso 2)
 const schema = z.object({
   // Campo trampa del form: invisible para humanos. Lo aceptamos para que no
   // rompa la validación, pero se descarta antes (ver checkHoneypot) y NUNCA
   // se guarda en la base.
   company_website_url: z.string().optional(),
-  name: z.string().trim().min(1, "Falta el nombre de la empresa"),
-  website: z.string().trim().url("El sitio no es una URL válida").optional().or(z.literal("")),
-  industry: z.string().trim().optional(),
-  province: z.string().trim().optional(),
-  client_type: z.enum(["mayorista", "minorista", "ambos"]).optional(),
-  contact_name: z.string().trim().min(1, "Falta tu nombre"),
-  contact_email: z.string().trim().toLowerCase().email("El email no es válido"),
+  // Todos obligatorios (2026-09-15): el sitio porque sin él el análisis no
+  // tiene qué mirar, y rubro/localidad/tipo de cliente porque son el contexto
+  // con el que se interpretan los hechos. `province` guarda la localidad junto
+  // a su provincia ("Bahía Blanca, Buenos Aires"); la columna conserva el
+  // nombre viejo para no migrar los diagnósticos ya emitidos.
+  name: obligatorio("Falta el nombre de la empresa"),
+  website: obligatorio("Falta el sitio web").url("El sitio no es una URL válida"),
+  industry: obligatorio("Falta el rubro"),
+  province: obligatorio("Falta la localidad"),
+  client_type: z.enum(["mayorista", "minorista", "ambos"], {
+    error: "Falta a quién le vende",
+  }),
+  contact_name: obligatorio("Falta tu nombre"),
+  contact_email: obligatorio("Falta tu email").toLowerCase().email("El email no es válido"),
 });
 
 /** El honeypot con cualquier contenido delata a un bot. Se chequea sobre el
@@ -69,10 +82,10 @@ export async function POST(req: Request) {
     .from("companies")
     .insert({
       name: data.name,
-      website: data.website || null,
-      industry: data.industry || null,
-      province: data.province || null,
-      client_type: data.client_type || null,
+      website: data.website,
+      industry: data.industry,
+      province: data.province,
+      client_type: data.client_type,
       contact_name: data.contact_name,
       contact_email: data.contact_email,
     })

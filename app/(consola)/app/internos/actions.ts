@@ -20,7 +20,10 @@ import { diagnosticRequested, inngest } from "@/lib/inngest/client";
  *     fila salga con origen 'consola' y firmada por quien la crea.
  *  3. Queda con origen 'consola', así no se mezcla con los leads. */
 
-// Mismos criterios que el paso 1 del schema de app/api/diagnostics/route.ts.
+// Más laxo que el paso 1 de app/api/diagnostics/route.ts a propósito: ahí todo
+// es obligatorio, acá solo el nombre. Un alta interna se carga con lo poco que
+// se sabe de la empresa y el equipo asume el costo de un informe sin contexto.
+// `province` guarda la localidad con su provincia, igual que en el form.
 const schema = z.object({
   name: z.string().trim().min(1, "Falta el nombre de la empresa"),
   website: z.string().trim().url("El sitio no es una URL válida").optional().or(z.literal("")),

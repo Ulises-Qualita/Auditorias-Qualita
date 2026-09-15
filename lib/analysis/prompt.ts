@@ -211,7 +211,9 @@ FORMATO DE SALIDA
 }
 `.trim();
 
-/** Los campos de `companies` que ve el analista. */
+/** Los campos de `companies` que ve el analista.
+ *  `province` guarda la localidad con su provincia ("Bahía Blanca, Buenos
+ *  Aires"): la columna mantiene el nombre viejo, el contenido es más fino. */
 export type CompanyForAnalysis = {
   name: string;
   website: string | null;
@@ -230,7 +232,7 @@ export function buildUserMessage(
         nombre: company.name,
         sitio: company.website,
         rubro: company.industry,
-        provincia: company.province,
+        localidad: company.province,
       },
       null,
       2,

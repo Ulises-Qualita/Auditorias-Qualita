@@ -2,21 +2,25 @@
 
 import { useState, useTransition } from "react";
 
-import ComboProvincia from "@/app/(cliente)/diagnostico/ComboProvincia";
-import { PROVINCIA_DEFAULT, RUBROS, TIPOS_CLIENTE } from "@/lib/diagnostico/opciones";
+import ComboLocalidad from "@/app/(cliente)/diagnostico/ComboLocalidad";
+import { RUBROS, TIPOS_CLIENTE } from "@/lib/diagnostico/opciones";
 import { esUrlValida, normalizarWebsite } from "@/lib/diagnostico/validacion";
 import { generarDiagnostico } from "../actions";
 
 /** El paso 1 del form público, en versión consola: empresa, sitio, rubro,
- *  provincia y a quién le vende. Sin contacto y sin honeypot (acá solo entra
+ *  localidad y a quién le vende. Sin contacto y sin honeypot (acá solo entra
  *  el equipo con sesión). Reusa las opciones, la validación y el combo de
- *  provincia del form del cliente para no tener dos criterios. */
+ *  localidad del form del cliente para no tener dos criterios.
+ *
+ *  Acá todo sigue siendo opcional menos el nombre, al revés que en el form del
+ *  cliente: un alta interna se carga muchas veces con lo poco que se sabe de
+ *  la empresa, y el equipo ya conoce el costo de un informe sin contexto. */
 
 type Campos = {
   name: string;
   website: string;
   industry: string;
-  province: string;
+  localidad: string;
   client_type: string;
 };
 
@@ -24,7 +28,7 @@ const INICIALES: Campos = {
   name: "",
   website: "",
   industry: "",
-  province: PROVINCIA_DEFAULT,
+  localidad: "",
   client_type: "",
 };
 
@@ -50,7 +54,7 @@ export function FormInterno() {
       name: campos.name.trim(),
       website: normalizarWebsite(campos.website),
       industry: campos.industry.trim(),
-      province: campos.province.trim(),
+      province: campos.localidad.trim(),
       ...(campos.client_type ? { client_type: campos.client_type } : {}),
     };
 
@@ -125,10 +129,11 @@ export function FormInterno() {
             ))}
           </select>
         </div>
-        <ComboProvincia
-          id="province"
-          valor={campos.province}
-          onChange={(v) => actualizar("province", v)}
+        <ComboLocalidad
+          id="localidad"
+          opcional
+          valor={campos.localidad}
+          onChange={(v) => actualizar("localidad", v)}
         />
       </div>
 

@@ -2,18 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import ComboProvincia from "./ComboProvincia";
-import {
-  PROVINCIA_DEFAULT,
-  RUBROS,
-  TIPOS_CLIENTE,
-} from "@/lib/diagnostico/opciones";
+import Caret from "./Caret";
+import ComboLocalidad from "./ComboLocalidad";
+import { RUBROS, TIPOS_CLIENTE } from "@/lib/diagnostico/opciones";
 import {
   armarPayload,
   normalizarWebsite,
+  pasoCompleto,
   primerPasoConError,
   requeridosCompletos,
-  requeridosPaso1Completos,
   validarFormulario,
   validarPaso,
   type CamposFormulario,
@@ -21,11 +18,13 @@ import {
   type Paso,
 } from "@/lib/diagnostico/validacion";
 
+/** Todo vacío: ningún campo es opcional, así que un valor precargado sería
+ *  una trampa (se envía sin que nadie lo haya elegido). */
 const CAMPOS_INICIALES: CamposFormulario = {
   name: "",
   website: "",
   industry: "",
-  province: PROVINCIA_DEFAULT,
+  localidad: "",
   client_type: "",
   contact_name: "",
   contact_email: "",
@@ -58,7 +57,7 @@ export default function FormDiagnostico() {
   // todo lo que parezca un input. Si viene con algo, el endpoint descarta.
   const [honeypot, setHoneypot] = useState("");
 
-  const puedeAvanzar = useMemo(() => requeridosPaso1Completos(campos), [campos]);
+  const puedeAvanzar = useMemo(() => pasoCompleto(1, campos), [campos]);
   const puedeEnviar = useMemo(
     () => requeridosCompletos(campos) && !enviando,
     [campos, enviando],
@@ -75,8 +74,13 @@ export default function FormDiagnostico() {
     });
   }
 
-  function validarCampo(campo: keyof CamposFormulario) {
-    const todos = validarFormulario(campos);
+  /** `valorNuevo` es para los controles que avisan al confirmar en vez de al
+   *  tipear (el combo de localidad): ahí el `setCampos` todavía no se aplicó y
+   *  validar contra `campos` daría el valor anterior. */
+  function validarCampo(campo: keyof CamposFormulario, valorNuevo?: string) {
+    const todos = validarFormulario(
+      valorNuevo === undefined ? campos : { ...campos, [campo]: valorNuevo },
+    );
     setErrores((previo) => {
       const siguiente = { ...previo };
       if (todos[campo]) siguiente[campo] = todos[campo];
@@ -195,7 +199,7 @@ export default function FormDiagnostico() {
             <Campo
               id="website"
               label="Sitio web"
-              hint="opcional"
+              hint="es lo que vamos a analizar"
               placeholder="https://tuempresa.com"
               valor={campos.website}
               error={errores.website}
@@ -217,7 +221,9 @@ export default function FormDiagnostico() {
                 id="industry"
                 label="Rubro"
                 valor={campos.industry}
+                error={errores.industry}
                 onChange={(v) => actualizar("industry", v)}
+                onBlur={() => validarCampo("industry")}
               >
                 <option value="">Seleccioná…</option>
                 {RUBROS.map((rubro) => (
@@ -227,21 +233,23 @@ export default function FormDiagnostico() {
                 ))}
               </CampoSelect>
 
-              <ComboProvincia
-                id="province"
-                valor={campos.province}
-                onChange={(v) => actualizar("province", v)}
+              <ComboLocalidad
+                id="localidad"
+                valor={campos.localidad}
+                error={errores.localidad}
+                onChange={(v) => actualizar("localidad", v)}
+                onCerrar={(v) => validarCampo("localidad", v)}
               />
             </div>
 
             <fieldset className="mb-5">
               <legend className="mb-2 block text-[0.9rem] font-semibold text-navy">
-                ¿A quién le vendés?{" "}
-                <span className="text-[0.8rem] font-normal text-tinta2">
-                  opcional
-                </span>
+                ¿A quién le vendés?
               </legend>
-              <div className="flex flex-wrap gap-2.5">
+              <div
+                className="flex flex-wrap gap-2.5"
+                aria-describedby={errores.client_type ? "client_type-error" : undefined}
+              >
                 {TIPOS_CLIENTE.map((tipo) => {
                   const activo = campos.client_type === tipo.value;
                   return (
@@ -250,7 +258,9 @@ export default function FormDiagnostico() {
                       className={`cursor-pointer rounded-full border-[1.5px] px-[18px] py-2.5 text-[0.9rem] transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-magenta/40 ${
                         activo
                           ? "border-transparent bg-[image:var(--grad)] text-white"
-                          : "border-linea text-navy hover:border-tinta2"
+                          : errores.client_type
+                            ? "border-warn text-navy"
+                            : "border-linea text-navy hover:border-tinta2"
                       }`}
                     >
                       <input
@@ -266,6 +276,11 @@ export default function FormDiagnostico() {
                   );
                 })}
               </div>
+              {errores.client_type && (
+                <p id="client_type-error" className="mt-1.5 text-[0.82rem] text-warn">
+                  {errores.client_type}
+                </p>
+              )}
             </fieldset>
 
             <div className="mt-8 flex justify-end">
@@ -531,30 +546,51 @@ function CampoSelect({
   id,
   label,
   valor,
+  error,
   onChange,
+  onBlur,
   children,
 }: {
   id: string;
   label: string;
   valor: string;
+  error?: string;
   onChange: (valor: string) => void;
+  onBlur: () => void;
   children: React.ReactNode;
 }) {
   return (
     <div className="mb-5">
       <label htmlFor={id} className="mb-2 block text-[0.9rem] font-semibold text-navy">
-        {label}{" "}
-        <span className="text-[0.8rem] font-normal text-tinta2">opcional</span>
+        {label}
       </label>
-      <select
-        id={id}
-        name={id}
-        value={valor}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-[12px] border-[1.5px] border-linea bg-white px-4 py-3.5 text-base text-navy transition outline-none focus:border-magenta focus:shadow-[0_0_0_4px_rgba(181,12,197,.1)]"
-      >
-        {children}
-      </select>
+      {/* `relative` + `pr-10` + `appearance-none`: la flecha nativa quedaba
+          pegada al borde y desalineada con la del combo de localidad, que está
+          al lado. Ver Caret. */}
+      <div className="relative">
+        <select
+          id={id}
+          name={id}
+          value={valor}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${id}-error` : undefined}
+          className={`w-full appearance-none rounded-[12px] border-[1.5px] bg-white px-4 py-3.5 pr-10 text-base text-navy transition outline-none ${
+            error
+              ? "border-warn focus:shadow-[0_0_0_4px_rgba(224,73,47,.12)]"
+              : "border-linea focus:border-magenta focus:shadow-[0_0_0_4px_rgba(181,12,197,.1)]"
+          }`}
+        >
+          {children}
+        </select>
+        <Caret />
+      </div>
+      {error && (
+        <p id={`${id}-error`} className="mt-1.5 text-[0.82rem] text-warn">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
