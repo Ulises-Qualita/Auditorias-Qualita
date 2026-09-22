@@ -793,10 +793,12 @@ function armarActivos(facts: SiteFacts): Numero[] {
       etiqueta: "Páginas enlazadas desde la home, listas para ordenar por cliente",
     });
   }
+  // La tarjeta es un número grande: un texto ahí ("Título propio") se lee como
+  // error de diseño, y el deck la descarta (activosConNumero en InformeDeck).
   if (seo?.title && !esTitleGenerico(seo.title)) {
     activos.push({
-      dato: "Título propio",
-      etiqueta: `La home se presenta como "${acortar(seo.title, 60)}"`,
+      dato: `${seo.titleLength ?? seo.title.length} car.`,
+      etiqueta: `Título propio en la home: "${acortar(seo.title, 50)}"`,
     });
   }
   if (c && c.viasTotal > 0) {
@@ -805,20 +807,17 @@ function armarActivos(facts: SiteFacts): Numero[] {
       etiqueta: "Vías de contacto ya presentes en la home",
     });
   }
-  if (t?.ga4) {
+  const etiquetasMedicion = [
+    t?.ga4 ? "analítica" : null,
+    t?.gtm ? "Tag Manager" : null,
+    t?.metaPixel ? "píxel de Meta" : null,
+    t?.googleAdsConversion ? "conversión de Ads" : null,
+  ].filter((nombre): nombre is string => nombre !== null);
+  if (etiquetasMedicion.length > 0) {
     activos.push({
-      dato: "GA4",
-      etiqueta: "Analítica instalada: la base para medir ya está puesta",
+      dato: `${etiquetasMedicion.length} de 4`,
+      etiqueta: `Etiquetas de medición ya instaladas: ${etiquetasMedicion.join(", ")}`,
     });
-  }
-  if (facts.tech?.cms) {
-    activos.push({
-      dato: acortar(facts.tech.cms, 14),
-      etiqueta: "Plataforma del sitio: se puede editar sin rehacer nada",
-    });
-  }
-  if (facts.dmarc?.exists) {
-    activos.push({ dato: "DMARC", etiqueta: "El dominio está protegido contra suplantación" });
   }
 
   return activos.slice(0, 6);
@@ -1044,8 +1043,8 @@ function armarCierre(
   }
   if (t && !t.metaPixel) {
     numeros.push({
-      dato: "Sin píxel",
-      etiqueta: "No se puede volver a alcanzar a quien ya visitó el sitio",
+      dato: "0",
+      etiqueta: "Píxeles de Meta: no se puede volver a alcanzar a quien ya visitó el sitio",
     });
   }
   numeros.push({

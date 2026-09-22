@@ -205,7 +205,8 @@ tesis
 - Impersonal, como "La demanda ya entra. El sitio no la recibe ni la mide.": sin "vos" y sin el nombre de la empresa, que ya está arriba en grande. En la portada se leen una detrás de la otra.
 
 activos
-- "dato": lo que va grande. Un número, o un número con su unidad (máximo 14 caracteres): "13 páginas", "4,5★ · 92", "#1", "6 + 4". Nada de oraciones.
+- "dato": lo que va grande. SIEMPRE empieza con una cifra o con el signo que la acompaña, máximo 14 caracteres: "13 páginas", "4,5★ · 92", "#1", "+50", "Top 3", "6 + 4", "2 de 4", "9,5K". Nunca una palabra ni un estado, aunque tenga un número adentro: ni "GA4", ni "DMARC", ni "quarantine", ni "Título propio", ni "Sin píxel", ni "Zonas". El sistema descarta la tarjeta que no arranque con una cifra.
+- Si un hecho no tiene número, no es una tarjeta: va como check del canal, en un insight o en el cuerpo de su lámina.
 - "etiqueta" (máx 95): qué es ese dato y por qué importa, en una línea: "opiniones en Google. La mejor reputación de los cuatro." Sin nombres de campos.
 - Hasta 6. Con búsqueda, mezclá lo del sitio con lo de afuera (reseñas, posiciones, anuncios, seguidores): son la foto de lo que ya tiene en marcha.
 

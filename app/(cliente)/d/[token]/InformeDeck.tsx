@@ -69,14 +69,14 @@ export function Informe({
   // numeración se hace después de filtrar, así el pie no saltea números.
   const laminas: Array<[string, (pg: number) => React.ReactNode] | null> = [
     ["alcance", (pg) => <Alcance empresa={empresa} pg={pg} conclusion={results.conclusiones?.alcance ?? null} />],
-    results.activos.length > 0
+    activosConNumero(results.activos).length > 0
       ? [
           "partida",
           (pg) => (
             <PuntoDePartida
               empresa={empresa}
               pg={pg}
-              activos={results.activos}
+              activos={activosConNumero(results.activos)}
               conclusion={results.conclusiones?.punto_de_partida ?? null}
             />
           ),
@@ -199,6 +199,20 @@ export function Informe({
 /* ---------------------------------------------------------------- */
 /* Datos derivados para las láminas                                  */
 /* ---------------------------------------------------------------- */
+
+/** Las tarjetas del punto de partida que de verdad muestran un número.
+ *
+ *  La tarjeta es un número grande con su etiqueta: un estado ahí adentro
+ *  ("quarantine", "GA4", "Título propio") se lee como error de diseño. El
+ *  prompt ya lo pide, pero esto lo garantiza, y también limpia los informes
+ *  guardados antes de analysis-2.2.0.
+ *
+ *  Entra lo que empieza con una cifra, con el signo que la acompaña ("+50",
+ *  "#1", "4,9★ · 279", "~2") o con "Top 3". Queda afuera lo que empieza con
+ *  una palabra, aunque tenga un número adentro ("GA4", "Quarantine", "Zonas"). */
+function activosConNumero(activos: DiagnosticResults["activos"]): DiagnosticResults["activos"] {
+  return activos.filter((activo) => /^([+#~<>≈]?\d|top\s*\d)/i.test(activo.dato.trim()));
+}
 
 /** Si la lámina de pauta tiene algo para mostrar.
  *
