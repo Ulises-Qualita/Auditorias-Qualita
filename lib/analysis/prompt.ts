@@ -367,6 +367,8 @@ PRESUPUESTO: ${tope} búsquedas para TODA la auditoría. La herramienta corta so
 Las lecturas con leer_pagina NO cuentan en este presupuesto: tienen el suyo (ver LECTURA DE PÁGINAS).
 No repitas una búsqueda que ya hiciste ni gastes una en confirmar algo que ya está en los facts.
 
+EJECUCIÓN DE CÓDIGO: la búsqueda trae un entorno para ejecutar código. Usalo solo para filtrar resultados de búsqueda, nunca para contar caracteres, medir textos ni armar o revisar el JSON: escribí cada texto apuntando bien debajo de su máximo, sin medirlo. Tampoco lances búsquedas desde el código: toda búsqueda va por la herramienta de búsqueda y cuenta en el presupuesto.
+
 QUÉ BUSCAR
 1. POSICIONES EN GOOGLE ARGENTINA (bloque "seo")
    - Buscá con las palabras del COMPRADOR: rubro + zona, producto o servicio + ciudad, el problema que resuelve + localidad. NUNCA el nombre de la empresa: quien la busca por la marca ya la tiene.

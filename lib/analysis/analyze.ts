@@ -58,8 +58,13 @@ import {
  *  2.1.0: cambia la cuenta del score (score.ts): Sitio web pesa 45% en vez
  *  de 30%, y la escala va de 30 a 100 en vez de 20 a 100. Mismo prompt y
  *  mismas madureces, así que un 2.0.0 y un 2.1.0 con los mismos canales dan
- *  puntajes distintos. */
-export const ANALYSIS_VERSION = "analysis-2.1.0";
+ *  puntajes distintos.
+ *  2.1.1: el prompt le pide no usar la ejecución de código de la búsqueda para
+ *  medir textos ni lanzar búsquedas. En una corrida de producción la usó 10
+ *  veces en la llamada final (11 minutos) y se pasó del tope de búsquedas
+ *  (31 con max_uses en 3). Hipótesis, no confirmada: las búsquedas lanzadas
+ *  desde el código no cuentan para max_uses. */
+export const ANALYSIS_VERSION = "analysis-2.1.1";
 
 /** Queda guardado en `diagnostics.method_version`: dice con qué recolección y
  *  con qué prompt se generó este informe. Sin esto, un informe viejo no se
