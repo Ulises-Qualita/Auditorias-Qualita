@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { sanitizarCompetidores } from "@/lib/diagnostico/validacion";
 import { diagnosticRequested, inngest } from "@/lib/inngest/client";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -36,6 +37,16 @@ const schema = z.object({
   }),
   contact_name: obligatorio("Falta tu nombre"),
   contact_email: obligatorio("Falta tu email").toLowerCase().email("El email no es válido"),
+  // Sitios de competidores que declara la empresa (opcional, hasta 3). Acá
+  // solo acotamos la forma; la normalización del sitio, los vacíos, los
+  // repetidos y el recorte a 3 los resuelve sanitizarCompetidores, el mismo
+  // criterio que usa el form. Un campo opcional no debería devolver 400 por mandar uno de
+  // más, así que se recorta en vez de rechazar; el techo de 20 está para que
+  // un payload absurdo no llegue a la base.
+  competidores: z
+    .array(z.string().max(160, "Ese competidor es demasiado largo"))
+    .max(20, "Demasiados competidores")
+    .optional(),
 });
 
 /** El honeypot con cualquier contenido delata a un bot. Se chequea sobre el
@@ -74,6 +85,7 @@ export async function POST(req: Request) {
     );
   }
   const data = parsed.data;
+  const competidores = sanitizarCompetidores(data.competidores);
 
   const supabase = createAdminClient();
 
@@ -88,6 +100,9 @@ export async function POST(req: Request) {
       client_type: data.client_type,
       contact_name: data.contact_name,
       contact_email: data.contact_email,
+      // null y no [] cuando no cargaron ninguno: acá "no los declararon" y "no
+      // tiene" son lo mismo, y null es lo que ya devuelven las filas viejas.
+      competidores: competidores.length > 0 ? competidores : null,
     })
     .select("id")
     .single();

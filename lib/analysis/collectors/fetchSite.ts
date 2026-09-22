@@ -1,4 +1,6 @@
 import "server-only";
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 
 /** Descarga del HTML del sitio. Es el insumo de casi todos los demás
  *  recolectores, así que su contrato es estricto: nunca tira, siempre devuelve
@@ -28,7 +30,22 @@ const MAX_BYTES = 3_000_000; // 3 MB: más que eso no es HTML que nos sirva
 const USER_AGENT =
   "QualitaDiagnostico/1.0 (+https://qualita.studio; auditoría de presencia digital)";
 
-export async function fetchSite(url: string): Promise<FetchSiteResult> {
+export type FetchSiteOptions = {
+  /** Para URLs que NO cargó una persona sino el modelo (la herramienta
+   *  `leer_pagina`): antes de cada salto, incluidos los redirects, se resuelve
+   *  el dominio y se rechaza cualquier IP privada, de loopback o de metadata
+   *  de la nube. Sin esto, un texto que el modelo leyó en una página podría
+   *  hacer que el servidor le pegue a su propia red. */
+  soloPublico?: boolean;
+};
+
+/** Saltos de redirect que se siguen a mano en modo `soloPublico`. */
+const MAX_REDIRECTS = 5;
+
+export async function fetchSite(
+  url: string,
+  { soloPublico = false }: FetchSiteOptions = {},
+): Promise<FetchSiteResult> {
   const vacio: FetchSiteResult = {
     ok: false,
     finalUrl: null,
@@ -52,19 +69,48 @@ export async function fetchSite(url: string): Promise<FetchSiteResult> {
 
   const inicio = Date.now();
   try {
-    const respuesta = await fetch(objetivo, {
-      redirect: "follow",
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      headers: {
-        "user-agent": USER_AGENT,
-        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "accept-language": "es-AR,es;q=0.9",
-      },
-      cache: "no-store",
-    });
+    const pedir = (destino: URL, redirect: RequestRedirect) =>
+      fetch(destino, {
+        redirect,
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+        headers: {
+          "user-agent": USER_AGENT,
+          accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "es-AR,es;q=0.9",
+        },
+        cache: "no-store",
+      });
+
+    let respuesta: Response;
+    let finalUrl: string;
+
+    if (!soloPublico) {
+      respuesta = await pedir(objetivo, "follow");
+      finalUrl = respuesta.url || objetivo.toString();
+    } else {
+      // Redirects a mano: cada salto se valida antes de pedirlo, porque un
+      // sitio público puede redirigir a una IP interna.
+      let actual = objetivo;
+      for (let salto = 0; ; salto += 1) {
+        const bloqueo = await destinoBloqueado(actual);
+        if (bloqueo) return { ...vacio, error: bloqueo };
+
+        respuesta = await pedir(actual, "manual");
+        const siguiente = respuesta.headers.get("location");
+        if (respuesta.status < 300 || respuesta.status >= 400 || !siguiente) break;
+        if (salto >= MAX_REDIRECTS) {
+          return { ...vacio, status: respuesta.status, error: "Demasiados redirects" };
+        }
+        await respuesta.body?.cancel().catch(() => {});
+        actual = new URL(siguiente, actual);
+        if (actual.protocol !== "http:" && actual.protocol !== "https:") {
+          return { ...vacio, error: `Redirect a un protocolo no soportado: ${actual.protocol}` };
+        }
+      }
+      finalUrl = actual.toString();
+    }
 
     const contentType = respuesta.headers.get("content-type");
-    const finalUrl = respuesta.url || objetivo.toString();
     const base = {
       finalUrl,
       redirected: finalUrl !== objetivo.toString(),
@@ -137,6 +183,56 @@ async function leerConTope(respuesta: Response): Promise<string | null> {
   }
 
   return partes.join("");
+}
+
+/** Motivo del bloqueo si la URL apunta a algo que no es internet público, o
+ *  null si se puede pedir. Resuelve TODAS las IPs del dominio: alcanza con
+ *  que una sea interna para rechazarlo. */
+async function destinoBloqueado(url: URL): Promise<string | null> {
+  const host = url.hostname.replace(/^\[|\]$/g, "");
+  if (!host || /^localhost$/i.test(host) || /\.(local|internal|localhost)$/i.test(host)) {
+    return "La URL apunta a una dirección interna";
+  }
+
+  let direcciones: string[];
+  if (isIP(host)) {
+    direcciones = [host];
+  } else {
+    try {
+      direcciones = (await lookup(host, { all: true })).map((d) => d.address);
+    } catch {
+      return "El dominio no resuelve por DNS";
+    }
+  }
+
+  return direcciones.some(esIpPrivada) ? "La URL apunta a una dirección interna" : null;
+}
+
+function esIpPrivada(ip: string): boolean {
+  const v4 = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
+  if (isIP(v4) === 4) {
+    const [a, b] = v4.split(".").map(Number);
+    return (
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      (a === 100 && b >= 64 && b <= 127) || // CGNAT
+      (a === 169 && b === 254) || // link-local, incluida la metadata de la nube
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 198 && (b === 18 || b === 19)) ||
+      a >= 224
+    );
+  }
+  const v6 = ip.toLowerCase();
+  return (
+    v6 === "::" ||
+    v6 === "::1" ||
+    v6.startsWith("fc") ||
+    v6.startsWith("fd") ||
+    v6.startsWith("fe80") ||
+    v6.startsWith("ff")
+  );
 }
 
 function describirError(error: unknown): string {

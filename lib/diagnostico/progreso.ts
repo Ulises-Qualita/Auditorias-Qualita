@@ -11,9 +11,13 @@ import { useEffect, useRef, useState } from "react";
  *    que los pasos avanzan con las duraciones típicas de una corrida y el
  *    último queda abierto hasta que el status confirme.
  *
- *  Duraciones: PageSpeed con las 4 categorías tarda ~50 s y corre primero, en
- *  su propio step; la recolección del HTML es casi instantánea y la
- *  interpretación con Claude ~90 s. Total estimado ~2 minutos y medio.
+ *  Duraciones medidas en una corrida real con búsqueda (Sonnet 5, 2026-09-22,
+ *  762 s de punta a punta, steps de Inngest): PageSpeed 42 s, facts 2 s, la
+ *  primera llamada a Claude —la de las búsquedas— 101 s, lecturas y segunda
+ *  llamada 90 s, y la última llamada, que razona y escribe el JSON entero,
+ *  526 s. Si el pipeline cambia de duración, se recalibra ACÁ: con los pasos
+ *  de ~2 minutos de antes la barra llegaba al 92% en dos minutos y quedaba
+ *  diez clavada en 97%.
  *
  *  Solo lo importan componentes cliente (usa hooks). */
 
@@ -26,57 +30,51 @@ export type PasoAnalisis = {
   segundos: number;
 };
 
-/** En el orden del pipeline: PageSpeed (su propio step), la recolección
- *  determinista del HTML (collect.ts) y después la interpretación con Claude. Solo nombra lo que de verdad se revisa; los
- *  canales que el informe omite (posiciones, Ads, redes, competencia) no van. */
+/** En el orden del pipeline (lib/inngest/functions.ts y analisisPorPasos.ts).
+ *  La última llamada a Claude se parte en dos pasos porque son casi nueve
+ *  minutos: un solo paso tanto tiempo parece colgado. */
 export const PASOS_ANALISIS: PasoAnalisis[] = [
   {
     titulo: "Midiendo la velocidad de carga",
     detalle: "Cuánto tarda en abrir tu sitio desde un celular, con la herramienta de Google.",
     interno: "PageSpeed (4 categorías)",
-    segundos: 30,
+    segundos: 42,
   },
   {
-    titulo: "Entrando a tu sitio web",
-    detalle: "Abrimos tu home tal como la ve alguien que llega por primera vez.",
-    interno: "Descarga de la home",
-    segundos: 4,
+    titulo: "Revisando tu sitio web",
+    detalle: "Tu home, las vías de contacto, lo que ve Google y la medición instalada.",
+    interno: "Facts del sitio (collect + DMARC)",
+    segundos: 3,
   },
   {
-    titulo: "Buscando cómo te pueden contactar",
-    detalle: "Teléfono, WhatsApp, mail y formularios: lo que se encuentra sin buscar.",
-    interno: "Vías de contacto",
-    segundos: 4,
+    titulo: "Buscándote en Google como lo haría un cliente",
+    detalle: "Con las palabras que usa quien busca lo que vendés, y quiénes aparecen antes.",
+    interno: "Búsqueda web: posiciones y competencia",
+    segundos: 50,
   },
   {
-    titulo: "Mirando cómo está ordenado el sitio",
-    detalle: "Las secciones, los links internos y el camino hasta contactarte.",
-    interno: "Arquitectura y links internos",
-    segundos: 4,
+    titulo: "Mirando tu ficha de Google, tus redes y tu pauta",
+    detalle: "Lo que ve alguien que te busca por nombre, y si hay anuncios activos.",
+    interno: "Búsqueda web: ficha, redes y pauta",
+    segundos: 50,
   },
   {
-    titulo: "Leyendo lo que ve Google",
-    detalle: "Títulos, descripciones y encabezados de tu sitio.",
-    interno: "SEO on-page",
-    segundos: 4,
+    titulo: "Leyendo los sitios de tu competencia",
+    detalle: "Cómo se presentan, cómo captan consultas y qué miden.",
+    interno: "leer_pagina + segunda llamada",
+    segundos: 90,
   },
   {
-    titulo: "Chequeando tu medición",
-    detalle: "Analítica, Tag Manager, píxeles y la configuración de tu mail.",
-    interno: "Medición (GA4, GTM, píxel) y DMARC",
-    segundos: 6,
+    titulo: "Cruzando todo lo que encontramos",
+    detalle: "Tu sitio contra cómo busca el comprador y contra lo que hace tu sector.",
+    interno: "Última llamada: razonamiento",
+    segundos: 240,
   },
   {
-    titulo: "Interpretando lo que encontramos",
-    detalle: "Cruzamos los hallazgos para ver dónde se te pueden escapar consultas.",
-    interno: "Interpretación con Claude",
-    segundos: 65,
-  },
-  {
-    titulo: "Armando tu informe",
-    detalle: "Ordenando todo canal por canal, con la evidencia de cada punto.",
-    interno: "Validación, score y guardado",
-    segundos: 25,
+    titulo: "Escribiendo tu informe",
+    detalle: "Canal por canal, con la evidencia de cada punto y lo que queda a validar.",
+    interno: "Última llamada: JSON, score y guardado",
+    segundos: 290,
   },
 ];
 
@@ -116,11 +114,13 @@ export function calcularProgreso(
   const enCurso = FINES.findIndex((fin) => segundos < fin);
   const pasado = enCurso === -1;
 
-  // Lineal hasta el 92% en el tiempo estimado; pasado eso se arrastra hacia
-  // el 97% sin llegar nunca: el 100% es exclusivo de la confirmación real.
+  // Lineal hasta el 95% en el tiempo típico. Pasado eso sigue moviéndose
+  // hacia el 99% sin llegar nunca —el 100% es exclusivo de la confirmación
+  // real—, con una constante larga: una corrida con más vueltas de búsqueda
+  // puede tardar unos minutos más, y una barra quieta parece colgada.
   const porcentaje = pasado
-    ? 92 + 5 * (1 - Math.exp(-(segundos - TOTAL_ANALISIS_S) / 45))
-    : 4 + (segundos / TOTAL_ANALISIS_S) * 88;
+    ? 95 + 4 * (1 - Math.exp(-(segundos - TOTAL_ANALISIS_S) / 240))
+    : 4 + (segundos / TOTAL_ANALISIS_S) * 91;
 
   return {
     activo: pasado ? PASOS_ANALISIS.length - 1 : enCurso,

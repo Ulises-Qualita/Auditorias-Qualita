@@ -1,12 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import Caret from "./Caret";
 import ComboLocalidad from "./ComboLocalidad";
 import { RUBROS, TIPOS_CLIENTE } from "@/lib/diagnostico/opciones";
 import {
   armarPayload,
+  MAX_COMPETIDORES,
+  normalizarSitioCompetidor,
   normalizarWebsite,
   pasoCompleto,
   primerPasoConError,
@@ -53,6 +55,11 @@ export default function FormDiagnostico() {
   const [errores, setErrores] = useState<ErroresFormulario>({});
   const [enviando, setEnviando] = useState(false);
   const [errorEnvio, setErrorEnvio] = useState<ErrorEnvio>(null);
+  // Sitios de competidores: opcional y fuera de `campos` porque no es
+  // obligatorio ni tiene error propio, así que no entra en la maquinaria de
+  // validación por paso. Arranca con un input; los otros dos se agregan a
+  // pedido.
+  const [competidores, setCompetidores] = useState<string[]>([""]);
   // Campo trampa: invisible para humanos, tentador para un bot que autocompleta
   // todo lo que parezca un input. Si viene con algo, el endpoint descarta.
   const [honeypot, setHoneypot] = useState("");
@@ -121,7 +128,7 @@ export default function FormDiagnostico() {
       const respuesta = await fetch("/api/diagnostics", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(armarPayload(campos, honeypot)),
+        body: JSON.stringify(armarPayload(campos, competidores, honeypot)),
       });
 
       // El endpoint siempre responde JSON, pero un 500 de infra podría no hacerlo.
@@ -183,8 +190,13 @@ export default function FormDiagnostico() {
       <p className="mt-2 text-tinta">{bajada}</p>
 
       <form onSubmit={alEnviar} noValidate className="mt-8">
+        {/* Un key por paso para que React no reuse nodos entre uno y otro.
+            Sin keys, el botón "Volver" (type="button") se reciclaba como
+            "Siguiente" (type="submit") dentro del mismo clic, y al terminar el
+            clic el navegador ejecutaba el submit: volvía al paso 1 y avanzaba
+            al 2 en el mismo instante. */}
         {paso === 1 ? (
-          <>
+          <Fragment key="paso-1">
             <Campo
               id="name"
               label="Nombre de tu empresa"
@@ -283,6 +295,8 @@ export default function FormDiagnostico() {
               )}
             </fieldset>
 
+            <Competidores valores={competidores} onChange={setCompetidores} />
+
             <div className="mt-8 flex justify-end">
               <button
                 type="submit"
@@ -292,9 +306,9 @@ export default function FormDiagnostico() {
                 Siguiente <Flecha />
               </button>
             </div>
-          </>
+          </Fragment>
         ) : (
-          <>
+          <Fragment key="paso-2">
             <Campo
               id="contact_name"
               label="Tu nombre"
@@ -352,7 +366,7 @@ export default function FormDiagnostico() {
                 )}
               </button>
             </div>
-          </>
+          </Fragment>
         )}
 
         <p className="mt-5 flex items-center gap-2 text-[0.82rem] text-tinta2">
@@ -365,6 +379,88 @@ export default function FormDiagnostico() {
 }
 
 /* ---------- piezas de UI ---------- */
+
+/** Repetidor de sitios de competidores: hasta MAX_COMPETIDORES inputs. Es
+ *  opcional y no valida nada —un sitio mal escrito no puede trabar un
+ *  diagnóstico—: lo que quede vacío o repetido lo descarta `armarPayload`
+ *  antes de enviar, y el https:// se completa al salir del campo. */
+function Competidores({
+  valores,
+  onChange,
+}: {
+  valores: string[];
+  onChange: (valores: string[]) => void;
+}) {
+  function actualizarUno(indice: number, valor: string) {
+    onChange(valores.map((previo, i) => (i === indice ? valor : previo)));
+  }
+
+  /** Al salir del campo le completamos el https://, igual que en el sitio de
+   *  la empresa, para que vea la dirección que vamos a mirar. */
+  function normalizarUno(indice: number) {
+    const normalizado = normalizarSitioCompetidor(valores[indice] ?? "");
+    if (normalizado === valores[indice]) return;
+    onChange(valores.map((previo, i) => (i === indice ? normalizado : previo)));
+  }
+
+  function quitar(indice: number) {
+    const restantes = valores.filter((_, i) => i !== indice);
+    // Nunca nos quedamos sin ningún input: el campo sigue estando disponible.
+    onChange(restantes.length > 0 ? restantes : [""]);
+  }
+
+  return (
+    <fieldset className="mb-5">
+      <legend className="mb-1 block text-[0.9rem] font-semibold text-navy">
+        Sitio de competidores{" "}
+        <span className="text-[0.8rem] font-normal text-tinta2">opcional</span>
+      </legend>
+      <p id="competidores-ayuda" className="mb-2.5 text-[0.82rem] text-tinta2">
+        Si los conocés, cargá hasta {MAX_COMPETIDORES} sitios. Si no, los detectamos
+        nosotros.
+      </p>
+
+      <div className="flex flex-col gap-2.5">
+        {valores.map((valor, indice) => (
+          <div key={indice} className="flex items-center gap-2">
+            <input
+              type="text"
+              value={valor}
+              onChange={(e) => actualizarUno(indice, e.target.value)}
+              onBlur={() => normalizarUno(indice)}
+              placeholder={indice === 0 ? "https://competidor.com" : "Otro sitio"}
+              aria-label={`Sitio del competidor ${indice + 1}`}
+              aria-describedby="competidores-ayuda"
+              inputMode="url"
+              autoComplete="off"
+              className="w-full rounded-[12px] border-[1.5px] border-linea bg-white px-4 py-3.5 text-base text-navy transition outline-none placeholder:text-tinta2 focus:border-magenta focus:shadow-[0_0_0_4px_rgba(181,12,197,.1)]"
+            />
+            {valores.length > 1 && (
+              <button
+                type="button"
+                onClick={() => quitar(indice)}
+                aria-label={`Quitar el sitio del competidor ${indice + 1}`}
+                className="flex-none rounded-[10px] border-[1.5px] border-linea bg-white p-3 text-tinta2 transition hover:border-tinta2 hover:text-navy"
+              >
+                <Cruz />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {valores.length < MAX_COMPETIDORES && (
+        <button
+          type="button"
+          onClick={() => onChange([...valores, ""])}
+          className="mt-2.5 inline-flex items-center gap-1.5 text-[0.85rem] font-semibold text-magenta transition hover:text-navy"
+        >
+          <Mas /> Agregar otro sitio
+        </button>
+      )}
+    </fieldset>
+  );
+}
 
 /** Aviso de privacidad (Ley 25.326, art. 6: informar para qué se piden los
  *  datos, quién los guarda y cómo ejercer los derechos). Va justo antes del
@@ -624,6 +720,42 @@ function AvisoError({ error }: { error: NonNullable<ErrorEnvio> }) {
         </p>
       )}
     </div>
+  );
+}
+
+function Cruz() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      className="block"
+      aria-hidden="true"
+    >
+      <path d="M6 6l12 12M18 6 6 18" />
+    </svg>
+  );
+}
+
+function Mas() {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.6"
+      strokeLinecap="round"
+      className="flex-none"
+      aria-hidden="true"
+    >
+      <path d="M12 5v14M5 12h14" />
+    </svg>
   );
 }
 

@@ -60,7 +60,7 @@ export function PantallaAnalizando({
               ? "Te llevamos al informe en un segundo."
               : enFila
                 ? "Tu análisis está en la fila y arranca en unos segundos. Podés cerrar la pestaña: te avisamos por mail cuando esté listo."
-                : "Esto tarda un par de minutos. Podés cerrar la pestaña: te avisamos por mail cuando esté listo."}
+                : "Esto tarda entre 10 y 15 minutos: buscamos cómo te encuentran en Google y qué hace tu competencia. Podés cerrar la pestaña: te avisamos por mail cuando esté listo."}
           </p>
 
           {pie && <div className="mt-9 text-[0.78rem] text-white/35">{pie}</div>}

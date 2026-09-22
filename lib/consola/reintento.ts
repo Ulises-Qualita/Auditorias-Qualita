@@ -11,9 +11,13 @@
 /** Un análisis en curso no se toca. Recién cuando pasó este rato sin que la
  *  fila se mueva damos por muerto el intento: `runAnalysis` escribe
  *  `updated_at` al arrancar cada intento, así que una corrida con los
- *  reintentos de Inngest (con backoff) sigue "fresca" mientras pelea. Diez
- *  minutos son holgados contra el peor caso real (~2 min). */
-export const MINUTOS_COLGADO = 10;
+ *  reintentos de Inngest (con backoff) sigue "fresca" mientras pelea.
+ *
+ *  Era 10 cuando una corrida tardaba ~2 min. Con la búsqueda web una corrida
+ *  sana tarda ~13 (lib/diagnostico/progreso.ts), y con 10 la consola ofrecía
+ *  reintentar un análisis que seguía andando: se disparaba de nuevo y se
+ *  pagaba dos veces. 25 deja margen para una corrida lenta. */
+export const MINUTOS_COLGADO = 25;
 
 /** Por qué se habilita el reintento. La UI lo usa para explicar en vez de
  *  mostrar un botón sin contexto. */

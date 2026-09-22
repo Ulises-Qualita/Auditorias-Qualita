@@ -11,16 +11,17 @@ import { PantallaSinInforme } from "../../_components/PantallaSinInforme";
  *  registros y deja `runAnalysis` corriendo en background (after()), así que
  *  el estado real solo se sabe preguntando: /api/diagnostics/[id]/status. */
 
-const INTERVALO_MS = 3000;
-/** ~5 minutos (subido de 80 cuando PageSpeed pasó a medir las 4 categorías,
- *  ~50 s más por corrida). Tope duro para no dejar un intervalo vivo para siempre si el
+/** Cada 5 s: con una corrida de ~13 minutos, 3 s eran 260 consultas para
+ *  enterarse de un solo cambio de estado. */
+const INTERVALO_MS = 5000;
+/** ~30 minutos. Tope duro para no dejar un intervalo vivo para siempre si el
  *  análisis quedó colgado sin marcar 'failed'.
  *
- *  Era 40 (~2 min) y quedó corto: con la estructura de informe de la auditoría
- *  el JSON creció y una corrida real medida tardó 99 s, así que un reintento
- *  del esquema se pasaba del tope y el cliente veía "demorado" sobre un
- *  análisis que en realidad estaba por terminar. */
-const MAX_INTENTOS = 100;
+ *  Era 100 × 3 s (~5 min) y con la búsqueda web quedó muy corto: una corrida
+ *  real tarda ~13 minutos (ver lib/diagnostico/progreso.ts), así que el
+ *  cliente veía "está tardando más de lo normal" a mitad de un análisis sano.
+ *  30 minutos cubren una corrida lenta con reintentos de Inngest. */
+const MAX_INTENTOS = 360;
 
 /** Pausa con todo en verde antes de ir al informe, para que el cierre se vea. */
 const PAUSA_LISTO_MS = 900;

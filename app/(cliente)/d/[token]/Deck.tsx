@@ -188,6 +188,16 @@ export function DatoGrande({
   );
 }
 
+/** Para un canal o un bloque que no se pudo mirar. No es una ausencia: es que
+ *  no lo verificamos, y el informe lo dice con todas las letras. */
+export function SinVerificar() {
+  return (
+    <span className="self-start rounded-full bg-infobg px-3 py-1 text-[.68rem] font-bold tracking-[.08em] text-info uppercase">
+      Sin verificar
+    </span>
+  );
+}
+
 export type VariantePunto = "coral" | "magenta" | "gris" | "vacio" | "duda";
 
 /** El punto de las filas del deck (`ldot`). "duda" es nuestro, no está en el

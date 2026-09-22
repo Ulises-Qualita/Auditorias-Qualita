@@ -1,0 +1,1452 @@
+/* Las láminas del informe, calcadas de docs/auditoria-ejemplo.html: mismas
+ * medidas, mismos colores, mismo 16:9. Todo se mide en `em` sobre una base
+ * que escala con el ancho del mazo (100cqw / 128), así la lámina se ve igual
+ * a cualquier ancho de escritorio.
+ *
+ * Diferencias deliberadas con el ejemplo:
+ * - La portada suma la tarjeta de puntaje (el ejemplo no la tiene).
+ * - Los valores "a validar" tienen su estilo: el ejemplo nunca los necesita
+ *   porque se armó a mano, acá los textos los escribe el modelo.
+ * - En escritorio el 16:9 es el alto mínimo: si el texto no entra, la
+ *   lámina crece en vez de apretarlo (ver .slide).
+ * - En pantallas angostas la lámina deja de ser 16:9 y crece con su
+ *   contenido: a 375 px un 16:9 queda ilegible. */
+
+.deck {
+  --navy: #252851;
+  --navy2: #30335f;
+  --navy3: #3d4070;
+  --coral: #fe6f61;
+  --magenta: #b50cc5;
+  --lav: #f3f2f8;
+  --lav2: #e4e2ef;
+  --gray: #c9cad9;
+  --muted: #6b6d85;
+  --white: #ffffff;
+
+  background: #e9e9ef;
+  font-family: var(--font-mulish), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  padding: 26px 16px 60px;
+}
+
+.deck *,
+.deck *::before,
+.deck *::after {
+  box-sizing: border-box;
+}
+
+.mazo {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  container-type: inline-size;
+}
+
+/* El 16:9 es el alto MÍNIMO, no el alto: los textos los escribe el modelo y
+ * a veces no entran en la medida del ejemplo. Con el 16:9 fijo quedaban
+ * apretados; ahora la lámina crece hacia abajo lo que haga falta. El mínimo
+ * vive en `.pad` (en flujo, no absoluto) para que el contenido empuje. */
+.slide {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 10px;
+  margin: 0 0 26px;
+  box-shadow: 0 8px 30px rgba(20, 20, 50, 0.14);
+  font-size: calc(100cqw / 128);
+  line-height: 1.3;
+}
+.light {
+  background: var(--white);
+  color: var(--navy);
+}
+.dark {
+  background: var(--navy);
+  color: var(--white);
+}
+.pad {
+  position: relative;
+  /* 16:9 del ancho de la lámina (= 100cqw: el contenedor es .mazo). */
+  min-height: calc(100cqw * 9 / 16);
+  padding: 4.4em 5.2em 2.4em;
+  display: flex;
+  flex-direction: column;
+}
+
+.deck p,
+.deck h1,
+.deck h2,
+.deck h3,
+.deck h4 {
+  margin: 0;
+  /* Los estilos globales ponen Unbounded en los títulos; el informe es todo Mulish. */
+  font-family: inherit;
+  letter-spacing: normal;
+}
+.deck b,
+.deck strong {
+  font-weight: 800;
+}
+
+/* encabezado */
+.eyebrow {
+  font-size: 1.3em;
+  font-weight: 800;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  margin: 0 0 0.55em;
+  padding-right: 12em;
+}
+.light .eyebrow {
+  color: var(--magenta);
+}
+.dark .eyebrow {
+  color: var(--coral);
+}
+.h1 {
+  font-size: 3.55em;
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: -0.005em;
+  padding-right: 3.2em;
+}
+.dark .h1 {
+  color: #fff;
+}
+.light .h1 {
+  color: var(--navy);
+}
+.sub {
+  font-size: 1.62em;
+  font-weight: 400;
+  color: var(--muted);
+  margin: 0.7em 0 0 !important;
+  line-height: 1.35;
+}
+.dark .sub {
+  color: #c9cad9;
+}
+.it {
+  font-style: italic;
+}
+.logo {
+  position: absolute;
+  top: 3.6em;
+  right: 5.2em;
+  height: 3.2em;
+  width: auto;
+}
+.iso {
+  height: 4.2em;
+  top: 3em;
+}
+
+/* pie */
+.foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+  margin-top: 1.15em;
+  font-size: 1.24em;
+  color: var(--muted);
+}
+.dark .foot {
+  color: #8d8fa6;
+}
+.pg {
+  font-variant-numeric: tabular-nums;
+}
+
+/* banda de conclusión */
+.concl {
+  border-radius: 1.1em;
+  padding: 1.7em 2.2em;
+  display: flex;
+  gap: 2em;
+  align-items: flex-start;
+  position: relative;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.light .concl {
+  background: var(--navy);
+  color: #fff;
+}
+.dark .concl {
+  background: var(--navy2);
+  color: #fff;
+}
+.concl::after {
+  content: "";
+  position: absolute;
+  left: 2.2em;
+  bottom: 0;
+  width: 9.6em;
+  height: 0.28em;
+  background: var(--coral);
+  border-radius: 2px;
+}
+.lbl {
+  flex: 0 0 auto;
+  font-size: 1.28em;
+  font-weight: 800;
+  letter-spacing: 0.34em;
+  color: var(--coral);
+  text-transform: uppercase;
+  padding-top: 0.15em;
+  min-width: 8.4em;
+}
+.txt {
+  font-size: 1.62em;
+  font-weight: 400;
+  line-height: 1.34;
+}
+
+.chk {
+  color: var(--magenta);
+  font-weight: 800;
+}
+.crs {
+  color: var(--coral);
+  font-weight: 800;
+}
+.med {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+ul.b {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+ul.b li {
+  position: relative;
+  padding-left: 1.5em;
+  margin: 0.55em 0;
+  line-height: 1.34;
+}
+ul.b li::before {
+  content: "•";
+  position: absolute;
+  left: 0.2em;
+  top: -0.02em;
+  color: var(--coral);
+  font-weight: 700;
+}
+
+/* ===== portada ===== */
+.cover {
+  background: linear-gradient(125deg, #252750 0%, #3a2168 34%, #7a1596 68%, #b40cc4 100%);
+  color: #fff;
+}
+.cover .pad {
+  justify-content: center;
+}
+/* Texto con ancho tope y la tarjeta al lado, el par centrado en la lámina:
+ * con el texto en 1fr, la tarjeta quedaba contra el borde derecho. */
+.coverGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 62em) 32em;
+  justify-content: center;
+  gap: 6em;
+  align-items: center;
+}
+.isoLogo {
+  position: absolute;
+  top: 3.4em;
+  left: 5.2em;
+  height: 6.6em;
+  width: auto;
+}
+.kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6em 1em;
+  font-size: 1.3em;
+  font-weight: 800;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: #fff;
+  margin: 0 0 0.8em;
+}
+.revision {
+  letter-spacing: 0.1em;
+  font-size: 0.75em;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 99em;
+  padding: 0.35em 0.9em;
+  color: rgba(255, 255, 255, 0.8);
+}
+.big {
+  font-size: 8.2em;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+.bigLargo {
+  font-size: 6em;
+}
+.tag {
+  font-size: 2.7em;
+  font-weight: 400;
+  color: #f1e7f5;
+  margin: 0.7em 0 0 !important;
+  line-height: 1.2;
+}
+.bench {
+  font-size: 1.7em;
+  font-weight: 800;
+  color: #f0d9f5;
+  margin: 1.5em 0 0 !important;
+}
+.src {
+  font-size: 1.32em;
+  font-weight: 400;
+  color: #d8b8e4;
+  margin: 1.1em 0 0 !important;
+  line-height: 1.4;
+}
+
+/* tarjeta glass de puntaje */
+.score100 {
+  border-radius: 1.8em;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(12px);
+  padding: 2.6em 2.6em 2.4em;
+}
+.scoreFila {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1em;
+  margin-bottom: 2.2em;
+}
+.scoreNum {
+  font-size: 6.4em;
+  font-weight: 900;
+  line-height: 0.85;
+}
+.scoreDe {
+  font-size: 1.6em;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+}
+.scoreLbl {
+  font-size: 1.4em;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+.nivel {
+  display: inline-block;
+  margin-top: 0.4em;
+  border-radius: 99em;
+  padding: 0.3em 0.9em;
+  font-size: 0.8em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.nivelInicial {
+  background: rgba(224, 73, 47, 0.25);
+  color: #ffb0a6;
+}
+.nivelDesarrollo {
+  background: rgba(181, 116, 0, 0.3);
+  color: #f5c979;
+}
+.nivelSolido {
+  background: rgba(31, 157, 99, 0.28);
+  color: #71dfa9;
+}
+.escala {
+  position: relative;
+  height: 0.8em;
+  border-radius: 0.5em;
+  background: linear-gradient(90deg, rgba(224, 73, 47, 0.75), rgba(181, 116, 0, 0.75) 55%, rgba(31, 157, 99, 0.75));
+}
+.marca {
+  position: absolute;
+  top: 50%;
+  width: 1.7em;
+  height: 1.7em;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 0.3em solid var(--coral);
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+.escalaRotulos {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1em;
+  font-size: 1.1em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ===== cuerpo ===== */
+.body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* Aire mínimo después del título y antes de la conclusión: el centrado da
+   * espacio cuando sobra, pero cuando el contenido justo entra quedaba pegado
+   * a los dos. Sin
+   * `min-height: 0`, el cuerpo nunca se achica por debajo de su contenido:
+   * la lámina crece (ver .slide). 2.6em ≈ 24 px con la lámina a 1180 px. */
+  margin: 2.6em 0;
+}
+.bodyArriba {
+  justify-content: flex-start;
+  margin-top: 1.4em;
+}
+.colhead {
+  font-size: 1.7em;
+  font-weight: 800;
+  margin: 0 0 0.7em !important;
+  color: var(--coral);
+}
+.note {
+  font-size: 1.32em;
+  color: var(--muted);
+  line-height: 1.4;
+  margin: 0.8em 0 0 !important;
+}
+.dark .note {
+  color: #9799ae;
+}
+
+/* L2 flujo */
+.flow {
+  display: grid;
+  grid-template-columns: 1fr auto 1.55fr auto 1.55fr;
+  gap: 1.1em 1em;
+  align-items: stretch;
+}
+.chan {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+.chip {
+  background: var(--lav);
+  border-radius: 1em;
+  padding: 1.15em 1.5em;
+  font-size: 1.62em;
+  font-weight: 800;
+  color: var(--navy);
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+.ar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2em;
+  color: var(--coral);
+  font-weight: 700;
+}
+.arcol {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+}
+.site {
+  background: var(--navy);
+  border-radius: 1.1em;
+  color: #fff;
+  padding: 1.8em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.site h3 {
+  font-size: 2.4em;
+  font-weight: 800;
+  margin: 0.1em 0 0;
+  letter-spacing: 0.02em;
+}
+.site p {
+  font-size: 1.6em;
+  color: #e4e2ef;
+  line-height: 1.4;
+  margin: auto 0 !important;
+}
+.dato {
+  background: var(--lav);
+  border-radius: 1.1em;
+  padding: 1.8em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.dato h3 {
+  font-size: 2.4em;
+  font-weight: 800;
+  color: var(--magenta);
+  margin: 0.1em 0 0;
+}
+.dato p {
+  font-size: 1.6em;
+  color: var(--navy);
+  line-height: 1.45;
+  margin: auto 0 !important;
+}
+.midar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4em;
+  color: var(--coral);
+  font-weight: 700;
+}
+
+/* L3 números */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.4em;
+}
+.stat {
+  background: var(--navy2);
+  border-radius: 1.1em;
+  padding: 1.7em 1.9em;
+}
+.statN {
+  font-size: 3.7em;
+  font-weight: 800;
+  color: var(--coral);
+  margin: 0 0 0.35em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.statNChico {
+  font-size: 2.9em;
+}
+.statD {
+  font-size: 1.55em;
+  color: #dcdce8;
+  line-height: 1.4;
+}
+
+/* L4 pasos */
+.stepwrap {
+  display: grid;
+  gap: 0.6em;
+  align-items: stretch;
+  grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+}
+.stepwrap3 {
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+}
+.step {
+  background: var(--lav);
+  border-radius: 1.1em;
+  padding: 1.5em 1.5em 1.7em;
+  display: flex;
+  flex-direction: column;
+}
+.stepDk {
+  background: var(--navy);
+  color: #fff;
+}
+.stepTop {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  margin: 0 0 0.8em;
+}
+.num {
+  font-size: 2.7em;
+  font-weight: 800;
+  color: var(--coral);
+  line-height: 1;
+}
+.stt {
+  font-size: 1.62em;
+  font-weight: 800;
+  color: var(--navy);
+}
+.stepDk .stt {
+  color: #fff;
+}
+.sb {
+  font-size: 1.44em;
+  color: var(--navy);
+  line-height: 1.4;
+}
+.stepDk .sb {
+  color: #e4e2ef;
+}
+.sar {
+  display: flex;
+  align-items: center;
+  color: var(--coral);
+  font-size: 2em;
+  font-weight: 700;
+}
+.quote {
+  background: var(--lav);
+  border-radius: 1em;
+  padding: 1.4em 2em;
+  font-size: 1.6em;
+  font-style: italic;
+  color: var(--navy);
+  line-height: 1.4;
+  margin-top: 0.9em;
+}
+
+/* L5 títulos */
+.cmp {
+  display: grid;
+  grid-template-columns: 0.62fr 1.35fr auto 1.5fr;
+  gap: 1em 1.1em;
+  align-items: center;
+}
+.rh {
+  font-size: 1.62em;
+  font-weight: 800;
+  color: var(--navy);
+}
+.cmpColh {
+  font-size: 1.5em;
+  font-weight: 800;
+  color: var(--magenta);
+}
+.now {
+  background: var(--lav);
+  border-radius: 0.85em;
+  padding: 1.05em 1.4em;
+  font-size: 1.5em;
+  font-weight: 800;
+  color: var(--magenta);
+  line-height: 1.3;
+}
+.should {
+  background: var(--navy);
+  border-radius: 0.85em;
+  padding: 1.05em 1.4em;
+  font-size: 1.5em;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.3;
+}
+.a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--coral);
+  font-size: 2em;
+  font-weight: 700;
+}
+
+/* L6 home */
+.two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.6em;
+  align-items: stretch;
+}
+.twoArriba {
+  align-items: start;
+}
+.panel {
+  background: var(--navy2);
+  border-radius: 1.1em;
+  padding: 1.9em 2.1em;
+}
+.panel h3 {
+  font-size: 1.75em;
+  font-weight: 800;
+  color: var(--coral);
+  margin: 0 0 0.8em;
+}
+.panel ul.b li {
+  font-size: 1.5em;
+  color: #e7e6ef;
+}
+.sh {
+  font-size: 1.75em;
+  font-weight: 800;
+  color: var(--coral);
+  margin: 1.4em 0 0.7em !important;
+}
+.minigrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.3em 1.6em;
+}
+.miniN {
+  font-size: 2.9em;
+  font-weight: 800;
+  color: var(--coral);
+  line-height: 1;
+  margin: 0 0 0.2em;
+}
+.miniD {
+  font-size: 1.5em;
+  color: #dcdce8;
+}
+
+/* L7 modelo */
+.twoModelo {
+  grid-template-columns: 1.05fr 1fr;
+}
+.mech {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.4em 1.2em;
+  align-items: center;
+}
+.k {
+  background: var(--lav);
+  border-radius: 0.8em;
+  padding: 0.68em 1.15em;
+  font-size: 1.55em;
+  font-weight: 800;
+  color: var(--magenta);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  line-height: 1.28;
+}
+.v {
+  background: var(--lav);
+  border-radius: 0.8em;
+  padding: 0.68em 1.15em;
+  font-size: 1.44em;
+  color: var(--muted);
+  line-height: 1.28;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+.real {
+  background: var(--navy);
+  border-radius: 1.1em;
+  padding: 1.4em 1.9em;
+  color: #fff;
+}
+.real h3 {
+  font-size: 1.75em;
+  font-weight: 800;
+  color: var(--coral);
+  margin: 0 0 0.7em;
+}
+.realRow {
+  display: flex;
+  gap: 0.9em;
+  align-items: baseline;
+  margin: 0.62em 0;
+}
+.realNum {
+  font-size: 2.2em;
+  font-weight: 800;
+  color: var(--coral);
+  line-height: 1;
+  min-width: 1.2em;
+}
+.realT {
+  font-size: 1.62em;
+  color: #efeff5;
+}
+
+/* L8 captación */
+.capt {
+  background: var(--lav);
+  border-radius: 1.1em;
+  padding: 1.8em 2em;
+}
+.captDk {
+  background: var(--navy);
+}
+.capt h3 {
+  font-size: 1.75em;
+  font-weight: 800;
+  color: var(--magenta);
+  margin: 0 0 1em;
+}
+.captDk h3 {
+  color: var(--coral);
+}
+.fgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7em;
+}
+.fld {
+  border-radius: 0.7em;
+  padding: 0.85em 1em;
+  font-size: 1.38em;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.25;
+  background: var(--lav2);
+  color: var(--navy);
+}
+.captDk .fld {
+  background: var(--navy3);
+  color: #fff;
+}
+.capt .fldC,
+.captDk .fldC {
+  background: var(--coral);
+  color: #fff;
+}
+.cnote {
+  font-size: 1.42em;
+  line-height: 1.4;
+  margin: 1.2em 0 0 !important;
+  color: var(--muted);
+}
+.captDk .cnote {
+  color: #c9cad9;
+}
+.captVacio {
+  font-size: 1.5em;
+  color: #c9cad9;
+  line-height: 1.45;
+}
+
+/* L9 arquitectura */
+.three {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.4em;
+  align-items: stretch;
+}
+.twoCols {
+  grid-template-columns: repeat(2, 1fr);
+}
+.acard {
+  background: var(--navy2);
+  border-radius: 1.1em;
+  padding: 1.7em 1.9em;
+}
+.eh {
+  font-size: 1.42em;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--coral);
+}
+.st {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 1.9em;
+  font-weight: 800;
+  color: #fff;
+  margin: 0.15em 0 1em;
+}
+.acard ul.b li {
+  font-size: 1.45em;
+  color: #e4e2ef;
+}
+
+/* L10 orgánico */
+.org {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2em 2.4em;
+  align-content: start;
+}
+.orgCol {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1em;
+}
+.ch {
+  font-size: 1.55em;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--coral);
+}
+.qrow {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  background: var(--lav);
+  border-radius: 0.8em;
+  padding: 0.85em 1.3em;
+}
+.ic {
+  font-size: 1.7em;
+  font-weight: 800;
+  flex: 0 0 auto;
+}
+.q {
+  font-size: 1.5em;
+  color: var(--navy);
+  flex: 1;
+  min-width: 0;
+}
+.r {
+  font-size: 1.5em;
+  font-weight: 800;
+  text-align: right;
+}
+.rMg {
+  color: var(--magenta);
+}
+.rCo {
+  color: var(--coral);
+}
+.rMu {
+  color: var(--muted);
+}
+
+/* barras */
+.ct {
+  font-size: 1.62em;
+  font-weight: 800;
+  color: var(--coral);
+  margin: 0 0 1em !important;
+  line-height: 1.3;
+}
+.light .ctMg {
+  color: var(--magenta);
+}
+/* Una sola grilla para todo el gráfico: la columna de nombres mide lo que
+ * el nombre más largo, y todas las barras arrancan a la misma altura. */
+.bars {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) 1fr;
+  gap: 0.75em 1em;
+  align-items: center;
+}
+.bar {
+  display: contents;
+}
+.lab {
+  font-size: 1.55em;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.light .lab {
+  color: var(--navy);
+}
+.dark .lab {
+  color: #e7e6ef;
+}
+.track {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  min-width: 0;
+}
+.fill {
+  height: 1.9em;
+  border-radius: 0.28em;
+  flex: 0 0 auto;
+}
+.val {
+  font-size: 1.6em;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.light .val {
+  color: var(--navy);
+}
+.dark .val {
+  color: #fff;
+}
+.valPend {
+  font-weight: 600;
+  font-style: italic;
+  opacity: 0.6;
+}
+.fMg {
+  background: var(--magenta);
+}
+.fCo {
+  background: var(--coral);
+}
+.fNv {
+  background: var(--navy);
+}
+.fLv {
+  background: var(--lav2);
+}
+
+.infobox {
+  background: var(--lav);
+  border-radius: 1.1em;
+  padding: 1.6em 1.9em;
+}
+.infoboxDk {
+  background: var(--navy2);
+  margin-top: 1.4em;
+}
+.infobox h3 {
+  font-size: 1.7em;
+  font-weight: 800;
+  color: var(--magenta);
+  margin: 0 0 0.7em;
+}
+.infoboxDk h3 {
+  color: var(--coral);
+}
+.infobox p {
+  font-size: 1.5em;
+  line-height: 1.42;
+  margin: 0.3em 0 !important;
+  color: var(--navy);
+}
+.infoboxDk p {
+  color: #e4e2ef;
+}
+
+/* L14 tabla medición */
+.tbl {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 1.5em;
+}
+.tbl th,
+.tbl td {
+  padding: 0.85em 1.1em;
+  text-align: left;
+}
+.tbl thead th {
+  font-weight: 800;
+  color: var(--magenta);
+}
+.tbl tbody tr:nth-child(odd) td {
+  background: var(--lav);
+}
+.tbl tbody td {
+  color: var(--navy);
+}
+.tc {
+  text-align: center !important;
+}
+.tbl tbody td.chk {
+  color: var(--magenta);
+}
+.tbl tbody td.crs {
+  color: var(--coral);
+}
+.tbl tbody td.med {
+  color: var(--muted);
+}
+
+/* L15 sector */
+.sect {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 1.44em;
+  overflow: hidden;
+  border-radius: 0.6em;
+}
+.sect th {
+  background: var(--magenta);
+  color: #fff;
+  font-weight: 800;
+  padding: 0.9em 1.1em;
+  text-align: left;
+}
+.sect td {
+  padding: 0.85em 1.1em;
+  color: var(--navy);
+  vertical-align: top;
+}
+.sect tr:nth-child(even) td {
+  background: var(--lav);
+}
+.sect tr.hl td {
+  background: var(--magenta);
+  color: #fff;
+  font-weight: 700;
+}
+.sect tr.hl td:first-child {
+  color: var(--coral);
+}
+.badge2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5em;
+  /* 1.3em quedaba pegado a la tabla cuando la lámina iba justa. */
+  margin-top: 2.2em;
+}
+.ub {
+  background: var(--navy2);
+  border-radius: 1em;
+  padding: 1.4em 1.7em;
+}
+.ub h4 {
+  font-size: 1.6em;
+  font-weight: 800;
+  color: var(--coral);
+  margin: 0 0 0.5em;
+}
+.ub p {
+  font-size: 1.42em;
+  color: #e4e2ef;
+  line-height: 1.4;
+}
+
+/* L16 score */
+.score {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 1.35em 1.6em;
+  align-items: center;
+}
+.chn {
+  font-size: 1.75em;
+  font-weight: 800;
+  color: var(--magenta);
+}
+.dots {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+}
+.dot {
+  width: 2em;
+  height: 2em;
+  border-radius: 0.35em;
+  background: var(--lav2);
+}
+.dotOn {
+  background: var(--magenta);
+}
+.dotOn1 {
+  background: var(--coral);
+}
+.dotPend {
+  background: transparent;
+  border: 0.15em dashed var(--gray);
+}
+.sc {
+  font-size: 1.75em;
+  font-weight: 800;
+  color: var(--navy);
+  margin-left: 0.4em;
+  white-space: nowrap;
+}
+.scPend {
+  color: var(--muted);
+  font-weight: 700;
+  font-style: italic;
+}
+.sd {
+  font-size: 1.5em;
+  color: var(--navy);
+  line-height: 1.35;
+}
+
+/* L17 método */
+.m6 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: 1fr 1fr;
+  gap: 1.3em;
+  align-items: stretch;
+}
+.mcard {
+  background: var(--navy2);
+  border-radius: 1.1em;
+  padding: 1.6em 1.8em;
+}
+.mcardCo {
+  background: var(--coral);
+}
+.mTop {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  margin: 0 0 0.7em;
+}
+.mNum {
+  font-size: 2.5em;
+  font-weight: 800;
+  color: var(--coral);
+  line-height: 1;
+}
+.mcardCo .mNum {
+  color: #fff;
+}
+.mt {
+  font-size: 1.7em;
+  font-weight: 800;
+  color: #fff;
+}
+.mb {
+  font-size: 1.44em;
+  color: #e4e2ef;
+  line-height: 1.4;
+}
+.mcardCo .mb {
+  color: #fff;
+}
+
+/* L18 síntesis */
+.synth {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.15fr;
+  gap: 1.5em;
+  align-items: stretch;
+}
+.scard {
+  background: var(--navy2);
+  border-radius: 1.1em;
+  padding: 1.7em 1.9em;
+}
+.scard h3 {
+  font-size: 1.72em;
+  font-weight: 800;
+  color: var(--coral);
+  margin: 0 0 0.8em;
+}
+.scard ul.b li {
+  font-size: 1.46em;
+  color: #e7e6ef;
+}
+
+/* L19 nota de método */
+.srcbox {
+  background: var(--lav);
+  border-radius: 1.1em;
+  padding: 1.6em 1.9em;
+  font-size: 1.5em;
+  color: var(--navy);
+  line-height: 1.42;
+  margin-top: 1.3em;
+}
+.mtbl {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 1.5em;
+  overflow: hidden;
+  border-radius: 0.5em;
+}
+.mtbl th {
+  background: var(--navy);
+  color: #fff;
+  font-weight: 800;
+  padding: 0.85em 1.1em;
+  text-align: left;
+}
+.mtbl td {
+  padding: 0.8em 1.1em;
+  color: var(--navy);
+}
+.mtbl tr:nth-child(even) td {
+  background: var(--lav);
+}
+.mtbl td:first-child {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* L20 cierre */
+.close {
+  background: linear-gradient(122deg, #fd6e60 0%, #c05867 40%, #6a3d63 72%, #252851 100%);
+  color: #fff;
+}
+.close .pad {
+  justify-content: center;
+}
+.close .isoLogo {
+  height: 6em;
+}
+.closeBig {
+  font-size: 6.2em;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+.steps6 {
+  font-size: 1.9em;
+  color: #f3e7ea;
+  margin: 0.9em 0 0 !important;
+  line-height: 1.4;
+  max-width: 82%;
+}
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-top: 2.2em;
+  align-self: flex-start;
+  border-radius: 99em;
+  background: #fff;
+  color: var(--navy);
+  font-size: 1.7em;
+  font-weight: 800;
+  padding: 0.8em 1.6em;
+  text-decoration: none;
+  transition: transform 0.15s ease;
+}
+.cta:hover {
+  transform: translateY(-2px);
+}
+.mail {
+  font-size: 2em;
+  font-weight: 800;
+  color: #fff;
+  margin: 1.4em 0 0 !important;
+}
+.loc {
+  font-size: 1.4em;
+  color: #e4cdd3;
+  margin: 0.6em 0 0 !important;
+}
+
+.mock {
+  background: var(--navy);
+  color: rgba(255, 255, 255, 0.85);
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 10px 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta {
+    transition: none;
+  }
+}
+
+/* ===== celular y tablet angosta: la lámina crece con su contenido ===== */
+@container (max-width: 760px) {
+  .slide {
+    font-size: calc(100cqw / 44);
+    margin-bottom: 18px;
+  }
+  .pad {
+    min-height: 0;
+    padding: 3.2em 2.4em 2em;
+    gap: 0;
+  }
+  .h1 {
+    font-size: 2.5em;
+    padding-right: 2.6em;
+  }
+  .eyebrow {
+    font-size: 1.1em;
+    letter-spacing: 0.24em;
+    padding-right: 7em;
+  }
+  .logo {
+    top: 2.6em;
+    right: 2.4em;
+    height: 2.4em;
+  }
+  .iso {
+    height: 3em;
+    top: 2.3em;
+  }
+  .body {
+    margin: 1.8em 0;
+  }
+  .concl {
+    flex-direction: column;
+    gap: 0.6em;
+    padding: 1.5em 1.7em 1.8em;
+  }
+  .concl::after {
+    left: 1.7em;
+  }
+  .big {
+    font-size: 4.6em;
+  }
+  .bigLargo {
+    font-size: 3.6em;
+  }
+  .tag {
+    font-size: 2em;
+  }
+  .isoLogo {
+    position: static;
+    height: 4.4em;
+    margin-bottom: 2em;
+    align-self: flex-start;
+  }
+  .coverGrid,
+  .twoModelo,
+  .flow,
+  .stats,
+  .stepwrap,
+  .stepwrap3,
+  .two,
+  .three,
+  .twoCols,
+  .org,
+  .badge2,
+  .m6,
+  .synth {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+  }
+  .coverGrid {
+    gap: 2.4em;
+  }
+  .arcol,
+  .midar,
+  .sar {
+    transform: rotate(90deg);
+    justify-self: center;
+  }
+  .arcol {
+    flex-direction: row;
+    gap: 2em;
+  }
+  .mech {
+    grid-template-columns: minmax(0, 42%) minmax(0, 1fr);
+  }
+  .cmp {
+    grid-template-columns: 1fr;
+    gap: 0.5em;
+  }
+  .cmpColh,
+  .cmp .a,
+  .cmpVacio {
+    display: none;
+  }
+  .rh {
+    margin-top: 1em;
+  }
+  .score {
+    grid-template-columns: 1fr;
+    gap: 0.5em;
+  }
+  .sd {
+    margin-bottom: 1em;
+  }
+  .bars {
+    grid-template-columns: minmax(0, 40%) 1fr;
+  }
+  .tablaScroll {
+    overflow-x: auto;
+  }
+  .sect,
+  .tbl {
+    min-width: 36em;
+  }
+  .steps6 {
+    max-width: none;
+  }
+}

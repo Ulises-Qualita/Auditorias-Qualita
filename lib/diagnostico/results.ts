@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { analysisOutput, estadoCanal } from "@/lib/analysis/schema";
+import { analysisLectura, estadoCanal } from "@/lib/analysis/schema";
 
 /** El contrato de lectura de `diagnostics.results`.
  *
@@ -14,9 +14,45 @@ import { analysisOutput, estadoCanal } from "@/lib/analysis/schema";
  *  nunca llega como prop a un componente cliente. El informe público no lo
  *  necesita. */
 
-export const diagnosticResults = analysisOutput.extend({
+/** Lo que se muestra de cada `leer_pagina` (lib/analysis/lecturas.ts): lo
+ *  que usa la tabla de medición de la competencia. El resto lo descarta zod. */
+const lecturaPagina = z.object({
+  url: z.string(),
+  para: z.enum(["cliente", "competidor"]),
+  finalUrl: z.string().nullable(),
+  dominio: z.string().nullable(),
+  ok: z.boolean(),
+  tracking: z
+    .object({
+      ga4: z.boolean(),
+      gtm: z.boolean(),
+      metaPixel: z.boolean(),
+      googleAdsConversion: z.boolean(),
+    })
+    .nullable(),
+  dmarc: z.object({ exists: z.boolean().nullable(), policy: z.string().nullable() }).nullable(),
+});
+
+/* `analysisLectura` y no `analysisOutput`: el contrato de lectura acepta
+ * los informes de antes de analysis-2.0.0, que no traen los bloques de las
+ * láminas nuevas. */
+export const diagnosticResults = analysisLectura.extend({
+  lecturas: z.array(lecturaPagina).optional().default([]),
   analysis_source: z.enum(["mock", "claude"]).optional(),
   a_validar: z.array(z.string()).optional().default([]),
+  /** Lo que el pipeline guarda de la búsqueda web. Se declara SOLO lo que usa
+   *  el informe —las fuentes para la nota de método y cuántas búsquedas se
+   *  hicieron—: las queries crudas y las citas sin respaldo son material de
+   *  auditoría del equipo y zod las descarta antes de que lleguen al render. */
+  investigacion: z
+    .object({
+      hechas: z.number().optional(),
+      fuentes: z
+        .array(z.object({ titulo: z.string(), url: z.string() }))
+        .optional()
+        .default([]),
+    })
+    .optional(),
   // Informes viejos (v1, dos pilares) traen esto. Se acepta para que sigan
   // parseando, pero no se muestra ni se vuelve a escribir.
   pilar_marca: z.object({ estado: z.literal("a_validar") }).optional(),
@@ -27,9 +63,21 @@ export type EstadoCanal = z.infer<typeof estadoCanal>;
 export type CanalInforme = DiagnosticResults["canales"]["sitio"];
 export type Check = CanalInforme["checks"][number];
 export type Fuga = DiagnosticResults["fugas"][number];
+/* Los bloques de investigación son opcionales en el esquema del análisis, así
+ * que acá se exportan ya sin el null: los componentes los reciben cuando
+ * existen y la lámina no se dibuja cuando no. */
+export type Arquitectura = NonNullable<DiagnosticResults["arquitectura"]>;
+export type PaginaInterna = NonNullable<DiagnosticResults["paginas"]>[number];
+export type Competidor = NonNullable<DiagnosticResults["mapa_sector"]>[number];
+export type Ranking = NonNullable<NonNullable<DiagnosticResults["seo"]>["rankings"]>[number];
+export type FichaGoogle = NonNullable<DiagnosticResults["ficha_google"]>;
+export type RedSocial = NonNullable<DiagnosticResults["redes"]>[number];
+export type CanalPauta = NonNullable<DiagnosticResults["google_ads"]>;
+export type Fuente = NonNullable<DiagnosticResults["investigacion"]>["fuentes"][number];
 export type NumeroDestacado = DiagnosticResults["activos"][number];
 export type PasoRecorrido = DiagnosticResults["recorrido"][number];
 export type PasoPlan = DiagnosticResults["plan"][number];
+export type LecturaInforme = DiagnosticResults["lecturas"][number];
 
 /** Devuelve null en vez de tirar: un results viejo o corrupto degrada a la
  *  pantalla sobria de error, no a un 500 en la cara del cliente. */

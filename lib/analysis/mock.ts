@@ -3,6 +3,7 @@ import "server-only";
 import type { SiteFacts } from "./collect";
 import type { CompanyForAnalysis } from "./prompt";
 import type { AnalysisOutput } from "./schema";
+import { computeScores } from "./score";
 
 /** Generador MOCK del análisis. Reemplaza SOLO la llamada a Claude: la salida
  *  se valida contra el mismo `analysisOutput` y pasa por el mismo scoring que
@@ -12,7 +13,7 @@ import type { AnalysisOutput } from "./schema";
  *  Regla de oro: todo lo que dice el mock se DERIVA de los facts reales. Si un
  *  hallazgo no está en los facts, no aparece acá tampoco. */
 
-export const MOCK_ANALYSIS_VERSION = "analysis-mock-2.1.0";
+export const MOCK_ANALYSIS_VERSION = "analysis-mock-3.0.0";
 
 type Check = AnalysisOutput["canales"]["sitio"]["checks"][number];
 type Canal = AnalysisOutput["canales"]["sitio"];
@@ -36,15 +37,26 @@ export function buildMockOutput(
   const orden = evaluarOrden(facts, fugas);
   const canales = { sitio, contacto, orden, busqueda, medicion };
 
+  const activos = armarActivos(facts);
+  const fugasFinales = recortarFugas(fugas);
+  const plan = armarPlan(canales);
+
   return {
     tesis: armarTesis(company, facts, canales),
     resumen: armarResumen(company, facts, canales),
-    activos: armarActivos(facts),
+    activos,
     recorrido: armarRecorrido(facts),
     canales,
-    fugas: recortarFugas(fugas),
-    plan: armarPlan(canales),
+    fugas: fugasFinales,
+    plan,
     cierre: armarCierre(company, facts, canales),
+    // Las láminas de 2.0.0. El mock no busca ni lee páginas: solo arma lo que
+    // sale de los facts, y lo demás no se dibuja.
+    escena: armarEscena(company, facts),
+    conclusiones: armarConclusiones(company),
+    score_canales: armarScoreCanales(canales),
+    sintesis: armarSintesis(company, activos, fugasFinales, plan),
+    captacion: armarCaptacion(company, facts),
   };
 }
 
@@ -762,7 +774,7 @@ function armarTesis(
   }
 
   return {
-    titular: `${nombre} tiene la base armada.`,
+    titular: acortar(`${nombre} tiene la base armada.`, 60),
     bajada: "Lo que falta son los detalles que convierten una visita en consulta.",
   };
 }
@@ -801,7 +813,7 @@ function armarActivos(facts: SiteFacts): Numero[] {
   }
   if (facts.tech?.cms) {
     activos.push({
-      dato: facts.tech.cms,
+      dato: acortar(facts.tech.cms, 14),
       etiqueta: "Plataforma del sitio: se puede editar sin rehacer nada",
     });
   }
@@ -854,51 +866,137 @@ function armarRecorrido(facts: SiteFacts): AnalysisOutput["recorrido"] {
   ];
 }
 
-/** El Método Qualita, armado a partir de lo que ESTE diagnóstico encontró. El
- *  orden es fijo: que el sitio reciba, después medir, y pautar al final. */
+/** El Método Qualita: siempre los 6 pasos, en su orden (analysis-2.0.0). El
+ *  detalle se ata a lo que ESTE diagnóstico encontró. */
 function armarPlan(canales: Canales): AnalysisOutput["plan"] {
-  const plan: AnalysisOutput["plan"] = [];
-
-  if (canales.contacto.madurez <= 3) {
-    plan.push({
-      titulo: "Que el sitio deje pedir",
+  return [
+    {
+      titulo: "Diagnóstico y arquitectura",
       detalle:
-        "Teléfono que se toque, mail publicado, WhatsApp y un formulario, visibles en todas las páginas y no en una sola.",
-    });
-  }
-  if (canales.sitio.madurez <= 3) {
-    plan.push({
-      titulo: "Decir qué vendés en la primera pantalla",
-      detalle: "Título, descripción y encabezado que nombren la categoría, no solo la marca.",
-    });
-  }
-  if (canales.orden.madurez <= 3) {
-    plan.push({
-      titulo: "Ordenar el sitio por cliente",
+        canales.orden.madurez <= 3
+          ? "Una página por lo que el comprador viene a resolver, con URLs que digan qué hay adentro."
+          : "La estructura actual se mantiene; se suman páginas por lo que busca el comprador.",
+    },
+    {
+      titulo: "Sitio que convierte",
       detalle:
-        "Una página por lo que el comprador viene a resolver, con URLs que digan qué hay adentro.",
-    });
-  }
-  plan.push({
-    titulo: "Un formulario que separe",
-    detalle:
-      "Que pregunte rubro, tipo de cliente y volumen, para que la consulta grande no entre igual que la suelta.",
-  });
-  if (canales.medicion.madurez <= 4) {
-    plan.push({
-      titulo: "Medir todo en un solo lugar",
+        canales.contacto.madurez <= 3
+          ? "Teléfono, mail, WhatsApp y formulario visibles en cada página, no en una sola."
+          : "Cada página con una vía de consulta a mano y un mensaje que diga qué se vende.",
+    },
+    {
+      titulo: "Medición unificada",
+      detalle: "GA4, Tag Manager, píxel y conversiones sobre cada consulta y cada clic a WhatsApp.",
+    },
+    {
+      titulo: "Captación que califica",
+      detalle: "Un formulario que pregunte rubro, tipo de cliente y volumen antes del mensaje libre.",
+    },
+    {
+      titulo: "Comunicación y marca",
       detalle:
-        "Analítica con un registro por cada consulta y cada clic a WhatsApp. Sin esto no se sabe qué funciona.",
-    });
-  }
-  plan.push({
-    titulo: "Recién ahora, pautar",
-    detalle: "Con una estructura que sabe recibir y medir, el dinero en anuncios rinde. Antes, no.",
-  });
-
-  return plan.slice(0, 6);
+        canales.busqueda.madurez <= 3
+          ? "Título, descripción y encabezados que nombren la categoría, no solo la marca."
+          : "Lo que cuenta quién es la empresa pasa a la home, con pruebas a la vista.",
+    },
+    {
+      titulo: "Publicidad que alimenta",
+      detalle: "Recién acá se refuerza la pauta, sobre una estructura que recibe y mide.",
+    },
+  ];
 }
 
+/* ------------------------------------------------- láminas (analysis-2.0.0) */
+
+/** La escena de la lámina "La pregunta que ordena". El mock no sabe quién es
+ *  el comprador del rubro, así que la escena es genérica y lo dice. */
+function armarEscena(company: CompanyForAnalysis, facts: SiteFacts): AnalysisOutput["escena"] {
+  const rubro = company.industry?.trim();
+  return {
+    pregunta: acortar(
+      `Alguien necesita ${rubro ? `resolver algo de ${rubro.toLowerCase()}` : "lo que vende la empresa"} y entra al sitio. ¿Qué pasa cuando llega?`,
+      130,
+    ),
+    necesidad: "Quiere entender si le sirve, pedir una cotización y que alguien le conteste.",
+    cita: null,
+    conclusion: facts.fetch.ok
+      ? acortar(
+          `La consulta ${facts.contacto && facts.contacto.viasTotal > 0 ? "puede llegar" : "no sabemos por dónde llega"}, pero nada registra de dónde vino ni qué necesitaba.`,
+          250,
+        )
+      : "El sitio no respondió al verificarlo: la consulta no tiene dónde caer hasta que eso se resuelva.",
+  };
+}
+
+function armarConclusiones(company: CompanyForAnalysis): AnalysisOutput["conclusiones"] {
+  const nombre = acortar(company.name?.trim() || "La empresa", 40);
+  return {
+    alcance: `Este diagnóstico mira qué pasa en el sitio de ${nombre} y con el dato, que es donde se define si la demanda que llega rinde.`,
+    punto_de_partida: `Esto es lo que ${nombre} ya tiene a favor en el sitio. Lo que sigue muestra qué le pasa a la consulta cuando llega.`,
+    metodo: "La publicidad es la última etapa, no la primera: pautar sobre un sitio que no capta ni mide es gastar a ciegas.",
+    nota_metodo:
+      "Cada dato del informe sale del código del sitio o del registro del dominio. Lo que no se pudo verificar quedó marcado.",
+    a_validar:
+      "A validar con el cliente (accesos de solo lectura): cuentas de Google Ads y Meta, Search Console y cómo se registran hoy las consultas. No se estimaron cifras de inversión, impresiones ni resultados: no son públicas.",
+  };
+}
+
+/** Sin búsqueda no hay canales externos: van en null y no puntúan. */
+function armarScoreCanales(canales: Canales): AnalysisOutput["score_canales"] {
+  const sinBusqueda = { madurez: null, detalle: "No relevado en esta versión de prueba." };
+  return {
+    google_organico: sinBusqueda,
+    redes_ficha: sinBusqueda,
+    sitio: { detalle: acortar(canales.sitio.insight, 115) },
+    google_ads: sinBusqueda,
+    meta_ads: sinBusqueda,
+    medicion: { detalle: acortar(canales.medicion.insight, 115) },
+    conclusion:
+      "Esta versión de prueba solo puntúa lo que sale del código del sitio. Los canales externos quedan para la corrida real.",
+  };
+}
+
+function armarSintesis(
+  company: CompanyForAnalysis,
+  activos: Numero[],
+  fugas: Fuga[],
+  plan: AnalysisOutput["plan"],
+): AnalysisOutput["sintesis"] {
+  const nombre = acortar(company.name?.trim() || "La empresa", 40);
+  const tiene = activos.slice(0, 4).map((activo) => acortar(`${activo.dato}: ${activo.etiqueta}`, 90));
+  return {
+    titulo: acortar(`${nombre} tiene la base. Falta que el sitio reciba y mida la consulta.`, 125),
+    tiene: tiene.length > 0 ? tiene : ["Un sitio online para empezar a ordenar."],
+    falta: fugas.slice(0, 4).map((fuga) => acortar(fuga.titulo, 90)),
+    oportunidad: plan.slice(0, 4).map((paso) => acortar(paso.detalle, 145)),
+    conclusion: "El orden importa: primero que el sitio reciba y mida, después pautar.",
+  };
+}
+
+/** La lámina de captación, solo con el formulario de la home. Sin formulario
+ *  detectado no hay nada que comparar y la lámina no va. */
+function armarCaptacion(
+  company: CompanyForAnalysis,
+  facts: SiteFacts,
+): AnalysisOutput["captacion"] {
+  const campos = facts.contacto?.camposFormulario ?? [];
+  if (campos.length === 0) return null;
+
+  const celdas = campos.slice(0, 6).map((campo) => ({
+    texto: acortar(campo.nombre, 42),
+    destacado: false,
+  }));
+  return {
+    titulo: "El formulario pide los datos de contacto. No pregunta qué necesita quien consulta.",
+    propio: {
+      etiqueta: acortar(`${company.name?.trim() || "Empresa"} · home`, 60),
+      campos: [...celdas, { texto: "¿Qué tipo de cliente sos?", destacado: true }],
+      nota: "El campo en color no existe: la consulta llega sin con qué separarla.",
+    },
+    competidor: null,
+    conclusion: "Sin una pregunta que califique, la consulta grande entra por la misma puerta que la chica.",
+  };
+}
 function armarCierre(
   company: CompanyForAnalysis,
   facts: SiteFacts,
@@ -951,7 +1049,9 @@ function armarCierre(
     });
   }
   numeros.push({
-    dato: String(Math.round((promedioMadurez(canales) / 5) * 100)),
+    // La misma cuenta que el score guardado: un número propio acá diría otra
+    // cosa que la portada.
+    dato: String(computeScores({ canales }).score_general),
     etiqueta: "Puntaje de arquitectura digital sobre 100",
   });
 

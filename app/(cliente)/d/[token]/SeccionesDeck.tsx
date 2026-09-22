@@ -7,7 +7,15 @@ import type {
   PasoPlan,
   PasoRecorrido,
 } from "@/lib/diagnostico/results";
-import { Banda, DatoGrande, Lamina, Tarjeta, tamanoDeGrupo, type Tono } from "./Deck";
+import {
+  Banda,
+  DatoGrande,
+  Lamina,
+  SinVerificar,
+  Tarjeta,
+  tamanoDeGrupo,
+  type Tono,
+} from "./Deck";
 
 /** Las láminas del deck que salen de `results` (lo que interpretó el
  *  análisis). Las que salen de hechos deterministas están en HechosDeck.tsx.
@@ -17,25 +25,44 @@ import { Banda, DatoGrande, Lamina, Tarjeta, tamanoDeGrupo, type Tono } from "./
 
 type ConEmpresa = { empresa: string };
 
-/** "Por dónde miramos": explicativa, igual para todos. Son NUESTROS canales
- *  —los que se verifican con código—, no las cinco puertas del deck: Google
- *  Ads, Meta y redes son de la versión con búsqueda web y acá no se prometen. */
-export function PorDondeMiramos({ empresa }: ConEmpresa) {
-  const puertas = [
+/** "Por dónde miramos": explicativa. Las puertas dependen de lo que ESTA
+ *  corrida miró de verdad: con búsqueda web son cinco —se suman lo que Google
+ *  devuelve, los anuncios y lo que se ve de la marca—, y sin ella son las
+ *  cuatro del sitio. Nunca se promete una puerta que no se abrió. */
+export function PorDondeMiramos({ empresa, conBusqueda }: ConEmpresa & { conBusqueda: boolean }) {
+  const delSitio = [
     ["Sitio web", "Cómo está armado y si está a la altura de la empresa"],
     ["Vías de contacto", "Si deja pedir un presupuesto sin tener que buscarlo"],
     ["Cómo está ordenado", "Si las secciones siguen cómo busca el que compra"],
     ["Qué ve Google", "Si el sitio le dice a Google qué vende y para quién"],
   ] as const;
 
+  const deAfuera = [
+    ["Sitio web", "Cómo está armado y si deja pedir un presupuesto"],
+    ["Búsquedas en Google", "Qué aparece cuando alguien busca lo que vendés"],
+    ["La competencia", "Quién ocupa esos lugares y qué hace distinto"],
+    ["Anuncios", "Si alguien del sector le está comprando el clic a quién"],
+    ["Redes y ficha", "Lo que ve de tu marca el que ya te conoce"],
+  ] as const;
+
+  const puertas = conBusqueda ? deAfuera : delSitio;
+
   return (
     <Lamina
       empresa={empresa}
       kicker="Por dónde miramos"
-      titulo="Las cuatro puertas por donde entra una consulta a tu sitio"
+      titulo={
+        conBusqueda
+          ? "Las cinco puertas por donde entra una consulta"
+          : "Las cuatro puertas por donde entra una consulta a tu sitio"
+      }
       lead="El sitio es donde termina cayendo todo lo que genera la marca afuera. Por eso es donde pusimos la lupa."
     >
-      <div className="grid grid-cols-1 gap-[clamp(12px,1.4vw,18px)] sm:grid-cols-2 lg:grid-cols-4">
+      <div
+        className={`grid grid-cols-1 gap-[clamp(12px,1.4vw,18px)] sm:grid-cols-2 ${
+          puertas.length === 5 ? "lg:grid-cols-5" : "lg:grid-cols-4"
+        }`}
+      >
         {puertas.map(([titulo, detalle], i) => (
           <Tarjeta key={titulo} className="relative">
             <span
@@ -60,8 +87,8 @@ export function PorDondeMiramos({ empresa }: ConEmpresa) {
         ))}
       </div>
       <Banda>
-        Y una quinta cosa que cruza a todas: la medición. Si no se mide, ninguna de las
-        cuatro se puede corregir.
+        Y una cosa más que cruza a todas: la medición. Si no se mide, ninguna de las{" "}
+        {puertas.length === 5 ? "cinco" : "cuatro"} se puede corregir.
       </Banda>
     </Lamina>
   );
@@ -240,14 +267,6 @@ export function LaminaCanal({
         </ul>
       )}
     </Lamina>
-  );
-}
-
-function SinVerificar() {
-  return (
-    <span className="self-start rounded-full bg-infobg px-3 py-1 text-[.68rem] font-bold tracking-[.08em] text-info uppercase">
-      Sin verificar
-    </span>
   );
 }
 

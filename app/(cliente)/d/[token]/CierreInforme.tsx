@@ -156,16 +156,49 @@ export function CtaQualita({ cantidadFugas }: { cantidadFugas: number }) {
   );
 }
 
-/** `method_version` no va acá: es metadato interno para la consola, no algo
+/** La nota de método, como el pie del deck de referencia. Con búsqueda web
+ *  suma cuántas búsquedas se hicieron y de qué sitios salió la evidencia, que
+ *  es lo que hace auditable el informe.
+ *
+ *  Los dominios salen de `results.investigacion.fuentes`, o sea de lo que
+ *  devolvieron las búsquedas de ESTA corrida: no hay una lista fija.
+ *
+ *  `method_version` no va acá: es metadato interno para la consola, no algo
  *  que le diga nada al cliente. */
-export function PieInforme({ fecha }: { fecha: string }) {
+export function PieInforme({
+  fecha,
+  busquedas = 0,
+  fuentes = [],
+}: {
+  fecha: string;
+  busquedas?: number;
+  fuentes?: { url: string }[];
+}) {
+  const dominios = dominiosDe(fuentes);
+
   return (
     <>
-      <p className="mx-auto max-w-(--ancho-informe) px-[clamp(18px,5vw,32px)] py-7 text-center text-[0.83rem] text-tinta">
-        Método: chequeos automáticos sobre tu sitio (contenido, SEO on-page, etiquetas
-        de medición y DMARC) e interpretación por el equipo de Qualita. Fuentes
-        públicas verificadas{fecha && ` · ${fecha}`}.
-      </p>
+      <div className="mx-auto max-w-(--ancho-informe) px-[clamp(18px,5vw,32px)] py-7 text-center text-[0.83rem] leading-[1.6] text-tinta">
+        <p>
+          Método: chequeos automáticos sobre tu sitio (contenido, SEO on-page, etiquetas
+          de medición y DMARC)
+          {busquedas > 0 &&
+            ` y ${busquedas} ${busquedas === 1 ? "búsqueda" : "búsquedas"} en Google Argentina sobre fuentes públicas`}
+          , e interpretación por el equipo de Qualita. Fuentes públicas verificadas
+          {fecha && ` · ${fecha}`}.
+        </p>
+        {dominios.length > 0 && (
+          <p className="mt-2 text-tinta2">
+            Dónde miramos: {dominios.join(" · ")}.
+          </p>
+        )}
+        {busquedas > 0 && (
+          <p className="mt-2 text-tinta2">
+            Sin cifras de inversión ni de resultados: esos datos no son públicos y
+            requieren acceso a las cuentas.
+          </p>
+        )}
+      </div>
 
       <footer className="bg-dark px-[clamp(18px,5vw,32px)] py-10 text-white">
         <div className="mx-auto flex w-full max-w-(--ancho-informe) flex-wrap items-center justify-between gap-4">
@@ -188,6 +221,24 @@ export function PieInforme({ fecha }: { fecha: string }) {
       </footer>
     </>
   );
+}
+
+/** Los dominios distintos que devolvieron las búsquedas, en orden de
+ *  aparición. Listar las URLs enteras sería ilegible —una corrida devuelve
+ *  más de cien—, y el dominio es lo que le dice algo al cliente. */
+function dominiosDe(fuentes: { url: string }[], tope = 12): string[] {
+  const vistos: string[] = [];
+  for (const fuente of fuentes) {
+    let dominio: string;
+    try {
+      dominio = new URL(fuente.url).hostname.replace(/^www\./, "");
+    } catch {
+      continue;
+    }
+    if (!vistos.includes(dominio)) vistos.push(dominio);
+  }
+  if (vistos.length <= tope) return vistos;
+  return [...vistos.slice(0, tope), `y ${vistos.length - tope} fuentes más`];
 }
 
 function Kicker({ children }: { children: React.ReactNode }) {

@@ -2,30 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  esInformeVisible,
-  fechaLarga,
-  mesYAnio,
-  parseResults,
-  type DiagnosticResults,
-} from "@/lib/diagnostico/results";
+import { esInformeVisible, parseResults } from "@/lib/diagnostico/results";
+import { extraerHechos } from "@/lib/diagnostico/hechos";
 import { PantallaAnalizando } from "../../_components/PantallaAnalizando";
 import { PantallaSinInforme } from "../../_components/PantallaSinInforme";
-import { extraerHechos, type HechosInforme } from "@/lib/diagnostico/hechos";
-import { CtaQualita, PieInforme } from "./CierreInforme";
-import { HeroInforme } from "./HeroInforme";
-import { Mazo } from "./Deck";
-import { EnNumeros, MatrizContacto, Medicion } from "./HechosDeck";
-import { Velocidad } from "./VelocidadDeck";
-import {
-  Fugas,
-  LaminaCanal,
-  LoQueYaTienen,
-  PorDondeMiramos,
-  Recorrido,
-  ResumenCanales,
-  SeisPasos,
-} from "./SeccionesDeck";
+import { Informe, type InformeCargado } from "./InformeDeck";
 
 /** Informe público, resuelto por `share_tokens.token` y no por id: el id no
  *  se comparte nunca. Todo lo que se muestra sale de `results` y de la
@@ -36,17 +17,7 @@ import {
 
 export const runtime = "nodejs";
 
-type Informe = {
-  status: string;
-  score_general: number | null;
-  score_infra: number | null;
-  score_marca: number | null;
-  created_at: string;
-  results: unknown;
-  company: { name: string; industry: string | null; province: string | null };
-};
-
-async function cargarInforme(token: string): Promise<Informe | null> {
+async function cargarInforme(token: string): Promise<InformeCargado | null> {
   const supabase = createAdminClient();
 
   const { data, error } = await supabase
@@ -123,121 +94,5 @@ export default async function InformePage({ params }: PageProps<"/d/[token]">) {
   const hechos = extraerHechos(informe.results);
 
   return <Informe informe={informe} results={results} hechos={hechos} />;
-}
-
-function Informe({
-  informe,
-  results,
-  hechos,
-}: {
-  informe: Informe;
-  results: DiagnosticResults;
-  hechos: HechosInforme | null;
-}) {
-  const fecha = mesYAnio(informe.created_at);
-  const empresa = informe.company.name;
-  const { canales } = results;
-
-  return (
-    <>
-      {results.analysis_source === "mock" && <BannerMock />}
-
-      {/* Las láminas del deck de referencia (docs/referencia-diseno-informe.html),
-          empezando por la portada con el puntaje, con los datos de ESTE
-          diagnóstico. Las secciones que necesitan búsqueda web (posiciones en
-          Google, respuestas con IA, fichas y reseñas, competencia) no están:
-          esta versión no las promete. Lo que quedó a validar tampoco va al
-          cliente: lo ve el equipo en la consola. */}
-      <Mazo>
-        <HeroInforme
-          empresa={empresa}
-          rubro={informe.company.industry}
-          provincia={informe.company.province}
-          fecha={fechaLarga(informe.created_at)}
-          tesis={results.tesis}
-          scoreGeneral={informe.score_general}
-          preliminar={informe.status === "preliminary"}
-        />
-        <PorDondeMiramos empresa={empresa} />
-        <LoQueYaTienen empresa={empresa} activos={results.activos} />
-        <Recorrido
-          empresa={empresa}
-          pasos={results.recorrido}
-          // El tono de alerta de la última tarjeta se decide con el canal de
-          // contacto, no leyendo el texto del paso: si no hay por dónde dejar
-          // el dato, el recorrido termina mal. Con el canal sano, no se pinta
-          // de rojo un final que no lo es.
-          desenlaceCritico={
-            canales.contacto.madurez <= 2 ||
-            canales.contacto.estado === "ausente" ||
-            canales.contacto.estado === "fallas_criticas"
-          }
-        />
-        {hechos?.contacto ? (
-          <MatrizContacto
-            empresa={empresa}
-            contacto={hechos.contacto}
-            insight={canales.contacto.insight}
-          />
-        ) : (
-          <LaminaCanal
-            empresa={empresa}
-            kicker="Vías de contacto"
-            titulo="Cómo se deja un dato en tu sitio"
-            canal={canales.contacto}
-          />
-        )}
-        <LaminaCanal
-          empresa={empresa}
-          kicker="El sitio"
-          titulo="Lo que encontramos en el sitio"
-          canal={canales.sitio}
-        />
-        {hechos?.velocidad && <Velocidad empresa={empresa} velocidad={hechos.velocidad} />}
-        <LaminaCanal
-          tono="dark"
-          empresa={empresa}
-          kicker="Arquitectura"
-          titulo="Cómo está ordenado el sitio"
-          canal={canales.orden}
-        />
-        <LaminaCanal
-          empresa={empresa}
-          kicker="Qué ve Google"
-          titulo="Lo que Google lee de tu sitio"
-          canal={canales.busqueda}
-        />
-        {hechos ? (
-          <>
-            <EnNumeros empresa={empresa} hechos={hechos} titular={results.cierre.titular} />
-            <Medicion empresa={empresa} hechos={hechos} insight={canales.medicion.insight} />
-          </>
-        ) : (
-          <LaminaCanal
-            empresa={empresa}
-            kicker="Medición"
-            titulo="Las piezas para saber de dónde vino cada consulta"
-            canal={canales.medicion}
-          />
-        )}
-        <Fugas empresa={empresa} fugas={results.fugas} />
-        <ResumenCanales empresa={empresa} canales={canales} />
-        <SeisPasos empresa={empresa} plan={results.plan} />
-      </Mazo>
-
-      <CtaQualita cantidadFugas={results.fugas.length} />
-
-      <PieInforme fecha={fecha} />
-    </>
-  );
-}
-
-/** Un informe generado con datos mock no puede pasar por real ni de lejos. */
-function BannerMock() {
-  return (
-    <div className="bg-navy px-[clamp(18px,5vw,32px)] py-2.5 text-center text-[0.78rem] font-semibold tracking-[0.04em] text-white/85">
-      Vista de prueba · datos mock, no es un diagnóstico real
-    </div>
-  );
 }
 

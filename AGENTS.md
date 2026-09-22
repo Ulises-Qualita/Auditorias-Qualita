@@ -11,7 +11,7 @@ Estoy construyendo una plataforma donde una empresa completa un formulario y rec
 ## Estado actual (ya hecho, no rehacer)
 - Proyecto creado, dependencias instaladas, `.env.local` cargado.
 - Supabase con 3 tablas: `companies`, `diagnostics`, `share_tokens`.
-  - `companies`: name, website, industry, province, client_type, contact_name, contact_email, created_at.
+  - `companies`: name, website, industry, province, client_type, contact_name, contact_email, competidores (text[], opcional, hasta 3), created_at.
   - `diagnostics`: company_id, status (pending|analyzing|preliminary|sent|failed), lead_status (nuevo|contactado|conversacion|cliente|descartado), score_general, score_marca, score_infra, results (jsonb), method_version, reviewed_by, created_at, updated_at.
   - `share_tokens`: token (uuid), diagnostic_id, created_at.
   - RLS activado en las 3, SIN policies todavía (todo pasa por el servidor con la secret key).
@@ -22,14 +22,19 @@ Estoy construyendo una plataforma donde una empresa completa un formulario y rec
 ## Variables de entorno (ya existen en .env.local)
 - NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY (publishable)
 - SUPABASE_SERVICE_ROLE_KEY (secret), ANTHROPIC_API_KEY
+- WEBSEARCH_MAX_USES (opcional): tope de búsquedas web por auditoría. Sin ella rige el default de `lib/analysis/websearch.ts`; en 0 la búsqueda queda apagada.
 
 ## Reglas duras (importantes)
 - La ANTHROPIC_API_KEY y la SUPABASE_SERVICE_ROLE_KEY NUNCA llegan al browser. Todo lo que las use corre en servidor (route handlers / server actions).
 - El análisis con Claude corre en el servidor, nunca en el cliente.
 - El pipeline mezcla chequeos DETERMINISTAS (con código: title/meta, URLs, GA4/GTM/píxel, DMARC por DNS, PageSpeed) + interpretación con Claude. Lo que no se puede verificar se marca "a validar", NUNCA se inventa (ni cifras de inversión, ni métricas).
+- En modo live, Claude además INVESTIGA con búsqueda web (tool `web_search` de Anthropic, tope de búsquedas por auditoría en `lib/analysis/websearch.ts`): posiciones en Google Argentina, competencia, ficha de Google, redes, pauta, las páginas internas del propio sitio tal como las indexó Google —los facts solo miran la home— y, con eso, la arquitectura (cómo está ordenado el sitio vs. cómo busca el comprador). La búsqueda NO ejecuta el JavaScript del sitio: la medición (GA4, GTM, píxel, conversiones) no se puede confirmar ni descartar por esta vía y sigue saliendo de los facts; los links rotos, los campos exactos de un formulario y cualquier interacción quedan "a validar". Cada dato externo que se afirma tiene que traer la URL que lo respalda —el esquema lo valida— y lo que la búsqueda no confirma va como "no_concluyente" o "a_validar". Las cifras de inversión, presupuesto e impresiones siguen prohibidas: no son públicas.
 - El diagnóstico tiene UN solo pilar: **"Arquitectura digital"**. El pilar "Marca implementadora" se sacó (2026-09-09): nunca tuvo datos y la auditoría real de Qualita no se organiza en pilares. Las columnas `score_marca` y el campo `pilar_marca` siguen en la base para que los informes viejos parseen, pero no se calculan ni se muestran.
-- El informe se organiza por CANALES, en el orden del recorrido del comprador: Sitio web, Vías de contacto, Cómo está ordenado el sitio, Qué ve Google (on-page) y Medición (incluye DMARC).
-- Los canales que hoy NO se pueden verificar con código (posiciones en Google, Google Ads, Meta Ads, redes, ficha de Google, competencia) se OMITEN del informe. No se muestran vacíos, ni "a validar", ni gateados: esta versión no los promete.
+- El análisis puntúa con la rúbrica cinco canales del SITIO, solo con los facts: Sitio web, Vías de contacto, Cómo está ordenado el sitio, Qué ve Google (on-page) y Medición (incluye DMARC). Siguen en `results.canales`, con sus checks, para la consola.
+- El informe del cliente sigue lámina por lámina `docs/auditoria-ejemplo.html` (desde analysis-2.0.0, 2026-09-21): portada con tesis y puntaje → alcance → punto de partida → la pregunta que ordena → sitio web (cómo aparece en Google, home, modelo, captación) → arquitectura → Google orgánico → Google Ads → Meta Ads → redes y ficha → medición → mapa del sector → score por canal → método Qualita → síntesis → nota de método → cierre. Cada lámina trae su título (el hallazgo) y su "Conclusión". Una lámina sin evidencia no se dibuja.
+- El score 0-100 sale de los SEIS canales del ejemplo: Sitio web (promedio de los cuatro canales del sitio) y Medición, con la rúbrica de los facts; Google orgánico, Redes + ficha, Google Ads y Meta Ads, con la rúbrica externa sobre lo que devolvió la búsqueda. Un canal externo que no se pudo mirar va en null y no puntúa. Sin búsqueda, el score es el de los cinco canales del sitio.
+- Los canales que salen de la búsqueda (posiciones en Google, Google Ads, Meta Ads, redes, ficha de Google, competencia, páginas internas y arquitectura) viven en bloques APARTE del JSON (`seo`, `google_ads`, `meta_ads`, `mapa_sector`, `ficha_google`, `redes`, `paginas`, `estructura`; el viejo `arquitectura` ya no se genera) y no tocan la madurez de los cinco canales del sitio, que se siguen puntuando solo con los facts. Desde analysis-2.0.0 SÍ se muestran en el informe del cliente, en sus láminas. Un bloque sin nada que decir no se devuelve; nunca se rellena.
+- En modo live el modelo tiene además la herramienta `leer_pagina` (`lib/analysis/lecturas.ts`, tope `MAX_LECTURAS`): el CÓDIGO lee la home de cada competidor y páginas internas del cliente con los mismos recolectores de la home. La tabla de medición de la competencia y la comparación de formularios salen de esas lecturas (`results.lecturas`), no de lo que el modelo diga. Como la URL la elige el modelo, `fetchSite` corre en modo `soloPublico` (rechaza IPs privadas, de loopback y de metadata, también en los redirects).
 - Cada diagnóstico guarda su method_version.
 - Antes de mostrarse "oficial" al cliente, un humano lo revisa (status pasa a 'sent').
 
@@ -37,7 +42,7 @@ Estoy construyendo una plataforma donde una empresa completa un formulario y rec
 1. Empresa completa el form (1 paso por ahora: datos de empresa + contacto/email al final). No hay paso de redes todavía.
 2. Submit → crea registros → dispara análisis en background.
 3. Pantalla "analizando" con polling del status.
-4. Informe público en /d/[token], con la estructura de la auditoría de referencia: tesis de portada → lo que ya tienen → el recorrido → resumen de canales (escala de 5 puntos) → detalle por canal con evidencia → puntos de fuga → plan (gateado detrás del CTA) → "en una página" → lo que quedó a validar.
+4. Informe público en /d/[token], con la estructura de `docs/auditoria-ejemplo.html` (ver Reglas duras). El método Qualita y la síntesis se ven completos (ya no hay plan gateado); el CTA a WhatsApp va en la lámina de cierre.
 5. Consola interna (con login) para ver leads/diagnósticos y revisarlos.
 
 ## Cómo quiero trabajar
@@ -61,7 +66,7 @@ La identidad ya está definida por el manual de marca. Respetala al pie; no inve
 ## Tipografías (Google Fonts)
 - **Unbounded** — títulos, números grandes y destacados. Pesos 500/600/700. Es display, geométrica, con personalidad.
 - **DM Sans** — todo el cuerpo de texto, tablas, labels, botones. Pesos 400/500/600/700.
-- **Poppins** — SOLO en los títulos de las láminas del informe del cliente (`/d/[token]`, debajo del hero), porque el informe sigue el deck `docs/referencia-diseno-informe.html`. Se carga con `next/font` en `app/(cliente)/d/[token]/Deck.tsx` y se aplica con `.lamina`. El hero del informe, la landing y la consola siguen en Unbounded.
+- **Mulish** — SOLO en el informe del cliente (`/d/[token]`), en todas sus láminas, porque el informe copia `docs/auditoria-ejemplo.html`. Se carga con `next/font` en `app/(cliente)/d/[token]/Laminas.tsx`; los estilos están en `informe.module.css` (láminas 16:9 fijas que escalan con el ancho; en pantallas angostas crecen con el contenido). La landing y la consola siguen en Unbounded + DM Sans.
 - Dongle es SOLO para el logo; no se usa en la UI.
 - Importar ambas de Google Fonts.
 
@@ -103,7 +108,7 @@ La identidad ya está definida por el manual de marca. Respetala al pie; no inve
 - Evitar la "dona de score" genérica; preferir escalas/barras con contexto.
 
 ## Dos vistas, dos tonos
-- **Vista empresa (cliente):** cálida, guiada, en "vos" argentino, lenguaje claro sin tecnicismos. Hero oscuro con auras + asterisco, con la tesis del diagnóstico como titular y una tarjeta glass de score; el cuerpo va por canales, con la escala de 5 puntos de la auditoría (nada de donas).
+- **Vista empresa (cliente):** la landing y el form, cálidos, guiados, en "vos" argentino. El informe, en cambio, sigue el tono de `docs/auditoria-ejemplo.html`: tercera persona, nombrando a la empresa, como un informe que se presenta en una reunión; portada con la tesis y la tarjeta glass de score, y la escala de 5 puntos por canal (nada de donas).
 - **Vista Qualita (consola):** más densa y sobria, tipo SaaS. Sidebar navy, workspace claro, tablas, pills de estado, drawers. Acá sí puede ser más técnica (checklists ✕/!/✓ por vertical).
 
 ## Estados y colores semánticos (diagnóstico)
@@ -113,7 +118,7 @@ La identidad ya está definida por el manual de marca. Respetala al pie; no inve
 ## Referencia
 Tengo un mockup HTML funcional en la carpeta /design (el archivo real es `qualita-boceto.html`) con la identidad aplicada: form, dashboard, tabla de leads, drawer y detalle con tabs. Úsalo como fuente de verdad de tokens, componentes y microcopy en vez de inventar.
 
-**Excepción: el informe del cliente.** Su estructura y su tono salen de `docs/ejemplo-auditoria-audifarm.pdf`, no del mockup (que todavía muestra el informe viejo de 2 pilares). El PDF manda para qué secciones hay y en qué orden; el mockup manda para cómo se ven.
+**Excepción: el informe del cliente.** Su estructura, su tono y su diseño salen de `docs/auditoria-ejemplo.html` (desde 2026-09-21), no del mockup ni del PDF de Audifarm: el HTML manda qué láminas hay, en qué orden, qué conclusiones cierran cada una y cómo se ven. Única suma: la tarjeta de puntaje en la portada.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

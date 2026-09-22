@@ -23,6 +23,42 @@ export type CamposFormulario = {
 
 export type ErroresFormulario = Partial<Record<keyof CamposFormulario, string>>;
 
+/* Sitios de competidores declarados por la empresa. Quedan fuera de
+ * `CamposFormulario` a propósito: ese tipo es un mapa de campos de texto
+ * obligatorios (lo recorren `validarPaso`, los errores y el componente
+ * `Campo`), y esto es una lista opcional que nunca bloquea el envío. */
+
+/** Cuántos acepta el formulario. */
+export const MAX_COMPETIDORES = 3;
+
+/** El campo pide el SITIO del competidor, así que le completamos el https://
+ *  igual que en el sitio de la empresa. Solo si lo escrito parece un dominio:
+ *  si en vez del sitio escribieron un nombre, prefijarlo daría una URL falsa,
+ *  y preferimos guardar el nombre tal cual antes que inventar una dirección. */
+export function normalizarSitioCompetidor(valor: string): string {
+  const limpio = valor.trim();
+  if (!limpio) return "";
+  if (/^https?:\/\//i.test(limpio)) return limpio;
+  return /^[^\s/]+\.[a-z]{2,}(\/\S*)?$/i.test(limpio) ? `https://${limpio}` : limpio;
+}
+
+/** Deja la lista como la espera el endpoint: normalizada, sin vacíos, sin
+ *  repetidos y hasta MAX_COMPETIDORES. La usan el form, el route handler y el
+ *  análisis, así que el criterio es uno solo. */
+export function sanitizarCompetidores(valores: readonly unknown[] | undefined | null): string[] {
+  if (!Array.isArray(valores)) return [];
+  const limpios: string[] = [];
+  for (const valor of valores) {
+    const limpio = typeof valor === "string" ? normalizarSitioCompetidor(valor) : "";
+    if (!limpio) continue;
+    // El mismo competidor cargado dos veces no agrega un punto de comparación.
+    if (limpios.some((previo) => previo.toLowerCase() === limpio.toLowerCase())) continue;
+    limpios.push(limpio);
+    if (limpios.length === MAX_COMPETIDORES) break;
+  }
+  return limpios;
+}
+
 /** El endpoint valida con `z.url()`, que exige esquema: "tuempresa.com" daría
  *  400. Se lo agregamos nosotros en vez de hacerle aprender la regla. */
 export function normalizarWebsite(valor: string): string {
@@ -133,9 +169,17 @@ export function validarFormulario(campos: CamposFormulario): ErroresFormulario {
 /** Arma el JSON que espera el endpoint.
  *  `localidad` sale como `province`: la columna de la base se sigue llamando
  *  así y guarda "Bahía Blanca, Buenos Aires".
+ *  `competidores` son los sitios de los competidores y es opcional: se
+ *  sanitiza acá (sin vacíos, sin repetidos, hasta 3) y la clave solo viaja si
+ *  quedó alguno.
  *  `honeypot` es el campo trampa: un humano siempre lo manda vacío. Va tal cual
  *  y decide el endpoint; acá no filtramos nada. */
-export function armarPayload(campos: CamposFormulario, honeypot = "") {
+export function armarPayload(
+  campos: CamposFormulario,
+  competidores: readonly string[] = [],
+  honeypot = "",
+) {
+  const listaCompetidores = sanitizarCompetidores(competidores);
   return {
     company_website_url: honeypot,
     name: campos.name.trim(),
@@ -145,5 +189,6 @@ export function armarPayload(campos: CamposFormulario, honeypot = "") {
     client_type: campos.client_type,
     contact_name: campos.contact_name.trim(),
     contact_email: campos.contact_email.trim().toLowerCase(),
+    ...(listaCompetidores.length > 0 ? { competidores: listaCompetidores } : {}),
   };
 }
