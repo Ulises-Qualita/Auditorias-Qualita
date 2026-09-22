@@ -517,7 +517,16 @@ export function Home({
   empresa,
   pg,
   bloque,
-}: Comun & { bloque: NonNullable<DiagnosticResults["home"]> }) {
+  busquedas = [],
+}: Comun & {
+  bloque: NonNullable<DiagnosticResults["home"]>;
+  /** Las búsquedas del comprador relevadas en esta corrida. Llenan el panel
+   *  derecho cuando la empresa no tiene argumentos escondidos en otra página:
+   *  el contraste de la lámina pasa a ser lo que muestra la home contra lo que
+   *  la gente escribe en Google. */
+  busquedas?: Array<{ keyword: string; aparece: "si" | "no" | "no_concluyente" }>;
+}) {
+  const conBusquedas = !bloque.escondido && busquedas.length > 0;
   return (
     <Lamina
       tono="dark"
@@ -527,7 +536,7 @@ export function Home({
       titulo={bloque.titulo}
       conclusion={bloque.conclusion}
     >
-      <div className={cx(s.two, !bloque.escondido && s.twoArriba)}>
+      <div className={cx(s.two, !bloque.escondido && !conBusquedas && s.twoArriba)}>
         <div className={s.panel}>
           <h3>Lo que ve quien entra</h3>
           <Viñetas items={bloque.ve_quien_entra} />
@@ -538,6 +547,23 @@ export function Home({
             </>
           )}
         </div>
+        {conBusquedas && (
+          <div className={s.panel}>
+            <h3>Lo que buscan los clientes</h3>
+            <ul className={s.b}>
+              {busquedas.slice(0, 5).map((busqueda, i) => (
+                <li key={i}>
+                  «{busqueda.keyword}»
+                  {busqueda.aparece === "si" ? (
+                    <span className={s.apareceSi}> · aparece</span>
+                  ) : busqueda.aparece === "no" ? (
+                    <span className={s.apareceNo}> · no aparece</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {bloque.escondido && (
           <div className={s.panel}>
             <h3>Lo que solo está en {bloque.escondido.donde}</h3>

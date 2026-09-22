@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { sanitizarCompetidores } from "@/lib/diagnostico/validacion";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { collect, COLLECT_VERSION, normalizarEntrada, type SiteFacts } from "./collect";
+import { completarActivos, completarCaptacion } from "./completar";
 import { pageSpeed, sinMedicion, type PageSpeedFacts } from "./collectors/pageSpeed";
 import { acumularUso, permisoGasto, topeUsdAuditoria, usoInicial, type UsoAnalisis } from "./costo";
 import { buildMockOutput, MOCK_ANALYSIS_VERSION } from "./mock";
@@ -70,8 +71,12 @@ import {
  *  con URL, los bloques google_ads y meta_ads no se devuelven, su canal va en
  *  null (antes madurez 1, que BAJABA el score por algo no verificado) y la
  *  lámina no se dibuja. Suma también una lectura para el formulario de un
- *  competidor, que es lo que llenaba la comparación de captación. */
-export const ANALYSIS_VERSION = "analysis-2.2.0";
+ *  competidor, que es lo que llenaba la comparación de captación.
+ *  2.2.1: el código completa dos huecos al guardar (completar.ts): las
+ *  tarjetas del punto de partida hasta 6 —la grilla es 3x2 y con 5 queda un
+ *  hueco— y el formulario del competidor, que el modelo dejaba vacío aunque
+ *  una lectura de la corrida ya lo tuviera. Todo sale de facts y lecturas. */
+export const ANALYSIS_VERSION = "analysis-2.2.1";
 
 /** Queda guardado en `diagnostics.method_version`: dice con qué recolección y
  *  con qué prompt se generó este informe. Sin esto, un informe viejo no se
@@ -347,6 +352,16 @@ export async function guardarAnalisis(
     // 6. Lo que se guarda incluye los hechos y lo que quedó sin verificar.
     const results = {
       ...parsed,
+      // Lo que el código completa con hechos de esta corrida cuando el modelo
+      // dejó el hueco (ver completar.ts): las tarjetas del punto de partida y
+      // el formulario del competidor.
+      activos: completarActivos(
+        parsed.activos,
+        factsLimpios,
+        interpretacion.lecturas,
+        parsed.mapa_sector?.length ?? 0,
+      ),
+      captacion: completarCaptacion(parsed.captacion, interpretacion.lecturas),
       // Marca de origen: en la consola un informe de prueba tiene que
       // distinguirse de uno real de un vistazo.
       analysis_source: modo === "mock" ? ("mock" as const) : ("claude" as const),

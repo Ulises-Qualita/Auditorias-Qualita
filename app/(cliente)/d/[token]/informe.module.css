@@ -673,6 +673,18 @@ ul.b li::before {
   color: var(--coral);
   margin: 0 0 0.8em;
 }
+/* El resultado de cada búsqueda del comprador, en la lámina de la home. */
+.apareceSi,
+.apareceNo {
+  font-weight: 800;
+  white-space: nowrap;
+}
+.apareceSi {
+  color: #7fe3b0;
+}
+.apareceNo {
+  color: var(--coral);
+}
 .panel ul.b li {
   font-size: 1.5em;
   color: #e7e6ef;

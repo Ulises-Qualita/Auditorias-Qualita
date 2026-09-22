@@ -86,7 +86,22 @@ export function Informe({
       ? ["pregunta", (pg) => <Pregunta empresa={empresa} pg={pg} escena={results.escena!} pasos={results.recorrido} />]
       : null,
     results.titulos ? ["titulos", (pg) => <Titulos empresa={empresa} pg={pg} bloque={results.titulos!} />] : null,
-    results.home ? ["home", (pg) => <Home empresa={empresa} pg={pg} bloque={results.home!} />] : null,
+    results.home
+      ? [
+          "home",
+          (pg) => (
+            <Home
+              empresa={empresa}
+              pg={pg}
+              bloque={results.home!}
+              busquedas={(results.seo?.rankings ?? []).map((ranking) => ({
+                keyword: ranking.keyword,
+                aparece: ranking.aparece,
+              }))}
+            />
+          ),
+        ]
+      : null,
     results.modelo ? ["modelo", (pg) => <Modelo empresa={empresa} pg={pg} bloque={results.modelo!} />] : null,
     results.captacion ? ["captacion", (pg) => <Captacion empresa={empresa} pg={pg} bloque={results.captacion!} />] : null,
     results.estructura ? ["estructura", (pg) => <Estructura empresa={empresa} pg={pg} bloque={results.estructura!} />] : null,
