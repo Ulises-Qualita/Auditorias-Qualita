@@ -63,8 +63,15 @@ import {
  *  medir textos ni lanzar búsquedas. En una corrida de producción la usó 10
  *  veces en la llamada final (11 minutos) y se pasó del tope de búsquedas
  *  (31 con max_uses en 3). Hipótesis, no confirmada: las búsquedas lanzadas
- *  desde el código no cuentan para max_uses. */
-export const ANALYSIS_VERSION = "analysis-2.1.1";
+ *  desde el código no cuentan para max_uses.
+ *  2.2.0: pauta. La búsqueda no puede leer el Centro de Transparencia de
+ *  Google ni la Biblioteca de Meta (son aplicaciones con JavaScript), así que
+ *  "no vimos anuncios" no era un hallazgo: era no haber mirado. Sin evidencia
+ *  con URL, los bloques google_ads y meta_ads no se devuelven, su canal va en
+ *  null (antes madurez 1, que BAJABA el score por algo no verificado) y la
+ *  lámina no se dibuja. Suma también una lectura para el formulario de un
+ *  competidor, que es lo que llenaba la comparación de captación. */
+export const ANALYSIS_VERSION = "analysis-2.2.0";
 
 /** Queda guardado en `diagnostics.method_version`: dice con qué recolección y
  *  con qué prompt se generó este informe. Sin esto, un informe viejo no se

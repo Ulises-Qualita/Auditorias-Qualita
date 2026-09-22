@@ -93,10 +93,12 @@ export function Informe({
     results.seo?.titulo && results.seo.rankings.length > 0
       ? ["organico", (pg) => <Organico empresa={empresa} pg={pg} seo={results.seo!} />]
       : null,
-    results.google_ads?.titulo
+    conPauta(results.google_ads)
       ? ["google_ads", (pg) => <GoogleAds empresa={empresa} pg={pg} pauta={results.google_ads!} />]
       : null,
-    results.meta_ads?.titulo ? ["meta_ads", (pg) => <MetaAds empresa={empresa} pg={pg} pauta={results.meta_ads!} />] : null,
+    conPauta(results.meta_ads)
+      ? ["meta_ads", (pg) => <MetaAds empresa={empresa} pg={pg} pauta={results.meta_ads!} />]
+      : null,
     results.redes_ficha
       ? [
           "redes",
@@ -197,6 +199,24 @@ export function Informe({
 /* ---------------------------------------------------------------- */
 /* Datos derivados para las láminas                                  */
 /* ---------------------------------------------------------------- */
+
+/** Si la lámina de pauta tiene algo para mostrar.
+ *
+ *  Con el título solo no alcanza: la búsqueda web no puede leer el Centro de
+ *  Transparencia de Google ni la Biblioteca de Meta (son aplicaciones con
+ *  JavaScript), así que el modelo devolvía el bloque con todo en "a validar" y
+ *  la lámina quedaba vacía. Desde analysis-2.2.0 el prompt directamente no lo
+ *  devuelve sin evidencia; esto además protege a los informes ya guardados. */
+function conPauta(pauta: DiagnosticResults["google_ads"] | DiagnosticResults["meta_ads"]): boolean {
+  if (!pauta?.titulo) return false;
+  if (pauta.actividad === "activa") return true;
+  return (
+    (pauta.fuentes?.length ?? 0) > 0 ||
+    (pauta.anunciantes?.length ?? 0) > 0 ||
+    (pauta.comparativa ?? []).some((fila) => fila.valor != null) ||
+    (pauta.destinos?.length ?? 0) > 0
+  );
+}
 
 function dominioDe(url: string | null | undefined): string | null {
   if (!url) return null;

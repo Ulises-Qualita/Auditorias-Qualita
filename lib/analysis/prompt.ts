@@ -315,14 +315,14 @@ redes_ficha — evidencia: ficha_google y redes.
   3: ficha con rating 4 o más y 20 reseñas o más, y al menos una red con publicaciones recientes.
   4: además, la audiencia en redes está a la par de la competencia comparada y el perfil lleva al sitio.
   5: la mejor reputación y la mayor audiencia del grupo comparado, activas y conectadas al sitio.
-google_ads — evidencia: google_ads y facts.tracking.
-  1: sin actividad visible en el Centro de Transparencia (el detalle dice "no vimos anuncios", nunca "no pauta").
+google_ads — evidencia: google_ads y facts.tracking. Sin el bloque google_ads (no hubo evidencia de anuncios, ver PAUTA), madurez null: no se puntúa lo que no se miró, y no pautar tampoco es una falta.
+  1: se vieron anuncios de la empresa pero llevan a una home que no capta ni mide nada.
   2: anuncios activos, pero sin conversión de Google Ads detectada en el sitio.
   3: activos y con conversión detectada.
   4: además, los anuncios llevan a páginas por servicio o por uso, no a la home.
   5: además, sostenidos en el tiempo, con varias campañas.
-meta_ads — evidencia: meta_ads y facts.tracking.
-  1: sin actividad visible en la Biblioteca de Anuncios (mismo cuidado: "no vimos").
+meta_ads — evidencia: meta_ads y facts.tracking. Sin el bloque meta_ads, madurez null, por lo mismo.
+  1: se vieron anuncios de la empresa pero llevan a un chat o a una home que no capta ni mide nada.
   2: anuncios activos, pero sin píxel de Meta detectado en el sitio.
   3: activos y con píxel detectado.
   4: además, un volumen a la par de la competencia y un destino que califica la consulta (formulario, landing), no un chat vacío.
@@ -385,10 +385,11 @@ QUÉ BUSCAR
    - Leé la home de cada competidor con leer_pagina: de ahí sale la columna de ese competidor en la tabla de medición y, si tiene, el formulario que se compara en captación.
 3. FICHA DE GOOGLE (bloque "ficha_google"): si la ficha del negocio existe, su rating, la cantidad de reseñas y la categoría. Los valores van como texto, tal como los viste.
 4. REDES (bloque "redes"): los perfiles públicos de la empresa, los seguidores y con qué frecuencia publica, si se ve. Los seguidores como texto y solo si los viste; jamás estimados.
-5. PAUTA (bloques "google_ads" y "meta_ads"): mirá lo público, el Centro de Transparencia de Anuncios de Google y la Biblioteca de Anuncios de Meta.
-   - "activa" solo si viste anuncios de ESA empresa.
-   - Si mirás y no ves anuncios, es "sin_actividad_visible" y el texto lo dice así: "no vimos anuncios activos", NUNCA "no pauta" (pueden haber pausado ayer, o pautar sin que la herramienta lo muestre).
-   - Si no pudiste mirar, "a_validar".
+5. PAUTA (bloques "google_ads" y "meta_ads")
+   - El Centro de Transparencia de Anuncios de Google y la Biblioteca de Anuncios de Meta son aplicaciones que se arman con JavaScript: la búsqueda web NO las puede leer. Que una búsqueda común no muestre anuncios no es evidencia de nada.
+   - "activa" solo si un resultado de búsqueda muestra un anuncio o una ficha de anunciante de ESA empresa, y lo respaldás con su URL en "fuentes".
+   - SIN esa evidencia, NO devuelvas el bloque: se omite entero y el canal va con madurez null en score_canales. Una lámina que solo dice "a validar" no aporta y no se dibuja.
+   - Nunca escribas "no pauta" ni "no vimos anuncios" como hallazgo del informe: no miramos donde habría que mirar. Lo que hay para decir sobre pauta sin acceso va en el bloque a_validar.
 
 6. PÁGINAS INTERNAS DEL SITIO DEL CLIENTE (bloque "paginas")
    - Los facts miran SOLO la home. Acá mirás el resto, que es donde suelen estar los problemas que nadie ve: buscá dentro del dominio del cliente las páginas que más pesan —contacto, "nosotros" o institucional, y las principales de producto o servicio— y leé cómo las tiene indexadas Google.
@@ -425,7 +426,7 @@ function lecturaDePaginas(tope: number): string {
   return `
 LECTURA DE PÁGINAS (herramienta leer_pagina)
 Tenés una segunda herramienta, leer_pagina: le pasás una URL y el sistema lee su código con los mismos recolectores que armaron los facts de la home. Devuelve lo verificado: título, descripción, encabezados, etiquetas de medición (GA4, Tag Manager y lo que carga adentro, píxel de Meta, conversión de Google Ads), tecnología, vías de contacto con los campos del formulario, el código de respuesta y, para otros dominios, la protección del correo.
-- Tope: ${tope} lecturas en toda la auditoría. Repartilas así: la home de cada competidor del mapa del sector (hasta 3) y, con lo que quede, las páginas del cliente que más pesan y que la home no muestra: la de presupuesto o cotización, la de contacto, la de "nosotros". Las URLs internas de los facts te dicen cuáles existen.
+- Tope: ${tope} lecturas en toda la auditoría. Repartilas en este orden: (1) la home de cada competidor del mapa del sector (hasta 3); (2) la página de contacto o de presupuesto de UN competidor que tenga formulario, que es lo único que permite comparar su formulario con el del cliente; (3) las páginas del cliente que más pesan y que la home no muestra: presupuesto o cotización, contacto, "nosotros". Las URLs internas de los facts te dicen cuáles existen; para un competidor, probá la ruta de contacto que aparezca en su home leída.
 - Es un HECHO verificado, con las mismas reglas que los facts: un true se afirma; un false es "no detectado en el código", nunca "no tiene" (puede cargar por JavaScript). Un status 404 o un dominio que no resuelve sí es un error verificado: ese link está roto.
 - La tabla de medición del informe la arma el SISTEMA con estas lecturas. Si no leés la home de un competidor, su columna sale "a validar".
 - Los campos de un formulario leído son la única evidencia válida para la lámina de captación.
