@@ -104,11 +104,11 @@ function PieLamina({ empresa, oscuro }: { empresa: string; oscuro: boolean }) {
         Qualita Studio para {empresa} · hola@qualita.studio
       </span>
       <Image
-        src={oscuro ? "/qualita-logo-blanco.svg" : "/qualita-logo-navy.svg"}
+        src={oscuro ? "/qualita-logo-blanco.svg" : "/Logo-nuevo.png"}
         alt="Qualita Studio"
-        width={277}
-        height={114}
-        className="h-6 w-auto"
+        width={1140}
+        height={299}
+        className="h-5 w-auto"
       />
     </div>
   );

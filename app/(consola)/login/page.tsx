@@ -26,12 +26,12 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       <div className="w-full max-w-[380px]">
         <div className="rounded-card border border-linea bg-card p-8 shadow-qualita">
           <Image
-            src="/qualita-logo-navy.svg"
+            src="/Logo-nuevo.png"
             alt="Qualita Studio"
-            width={277}
-            height={114}
+            width={1140}
+            height={299}
             priority
-            className="h-11 w-auto"
+            className="h-8 w-auto"
           />
 
           <p className="mt-7 flex items-center gap-2 text-[0.68rem] font-semibold tracking-[0.2em] text-magenta uppercase">

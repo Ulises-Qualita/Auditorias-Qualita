@@ -26,9 +26,6 @@ export type GastoGlobal = {
   conCosto: number;
   /** Promedio por diagnóstico con costo. */
   promedioUsd: number;
-  /** El análisis más caro registrado, para detectar un sitio que se fue de
-   *  escala antes de que sea un problema de facturación. */
-  maximoUsd: number;
   /** De dónde sale el número. "registro" = `analysis_costs`, que conserva lo
    *  gastado aunque se borre el diagnóstico. "diagnosticos" = el fallback de
    *  antes de docs/registro-gasto.sql, que pierde lo borrado y lo reintentado. */
@@ -108,14 +105,12 @@ function resumirGasto(filas: FilaGasto[], fuente: GastoGlobal["fuente"]): GastoG
   }
 
   const conCosto = porDiagnostico.size;
-  const maximoUsd = conCosto === 0 ? 0 : Math.max(...porDiagnostico.values());
 
   return {
     totalUsd: redondear(totalUsd),
     ultimos30Usd: redondear(ultimos30Usd),
     conCosto,
     promedioUsd: conCosto === 0 ? 0 : redondear(totalUsd / conCosto),
-    maximoUsd: redondear(maximoUsd),
     fuente,
   };
 }

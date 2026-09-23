@@ -74,7 +74,7 @@ export function GastoApi({ gasto }: { gasto: GastoGlobal | null }) {
     <section className="rounded-card border border-linea bg-card p-5 shadow-qualita">
       <Titulo />
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
         <Cifra label="Gastado en total" valor={formatearUsd(gasto.totalUsd)} />
         <Cifra label="Últimos 30 días" valor={formatearUsd(gasto.ultimos30Usd)} />
         <Cifra
@@ -82,7 +82,6 @@ export function GastoApi({ gasto }: { gasto: GastoGlobal | null }) {
           valor={formatearUsd(gasto.promedioUsd)}
           nota={gasto.conCosto === 1 ? "sobre 1 análisis" : `sobre ${gasto.conCosto} análisis`}
         />
-        <Cifra label="El más caro" valor={formatearUsd(gasto.maximoUsd)} />
       </div>
 
       {gasto.fuente === "diagnosticos" && (

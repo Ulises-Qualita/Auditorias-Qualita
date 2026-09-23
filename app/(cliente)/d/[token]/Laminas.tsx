@@ -98,10 +98,10 @@ function Lamina({
         ) : (
           <Image
             className={s.logo}
-            src="/qualita-logo-navy.svg"
+            src="/Logo-nuevo.png"
             alt="qualita studio"
-            width={277}
-            height={114}
+            width={1140}
+            height={299}
           />
         )}
         {sub && <p className={cx(s.sub, subItalica && s.it)}>{sub}</p>}

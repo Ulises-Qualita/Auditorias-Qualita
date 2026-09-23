@@ -10,12 +10,12 @@ export default function ClienteLayout({ children }: LayoutProps<"/">) {
         <div className="barra-cliente mx-auto flex h-16 w-full max-w-[940px] items-center justify-between px-[clamp(18px,5vw,32px)]">
           <Link href="/" className="flex items-center">
             <Image
-              src="/qualita-logo-navy.svg"
+              src="/Logo-nuevo.png"
               alt="Qualita Studio"
-              width={277}
-              height={114}
+              width={1140}
+              height={299}
               priority
-              className="h-10 w-auto"
+              className="h-7 w-auto"
             />
           </Link>
           <span className="hidden text-[0.8rem] font-medium text-tinta sm:block">
